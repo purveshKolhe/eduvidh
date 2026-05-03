@@ -10,7 +10,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUB
   ? process.env.NEXT_PUBLIC_SUPABASE_URL 
   : "https://placeholder.supabase.co";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
-const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL || "";
+const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL || process.env.NEXT_PUBLIC_MODAL_WEBHOOK_URL || "";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
