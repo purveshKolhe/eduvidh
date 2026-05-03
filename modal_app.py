@@ -139,7 +139,7 @@ async def orchestrate_job(job_id: str, prompt: str):
     system_prompt = """
     You are an educational video script writer. Based on the user's topic, generate a JSON array of exactly 6 slides.
     Use the following types: TitleSlide, AgendaSlide, SectionDividerSlide, ConceptExplanationSlide, ComparisonSlide, StepByStepProcessSlide, DataStatisticsSlide, ExampleCaseStudySlide, SummarySlide, QuestionDiscussionSlide.
-    Each slide must have: 'type', 'title', 'content' (array of strings, or exactly 4 strings for ComparisonSlide), 'narration' (text to be spoken), and optionally 'latex' and 'icon' (lucide-react icon name like 'Brain').
+    Each slide must have: 'type', 'title', 'content' (array of strings, or exactly 4 strings for ComparisonSlide), 'narration' (text to be spoken), and optionally 'latex' (a single string containing the math expression WITHOUT any $ delimiters) and 'icon' (lucide-react icon name like 'Brain').
     Respond ONLY with raw JSON, no markdown blocks.
     """
     

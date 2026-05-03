@@ -60,6 +60,12 @@ export const ConceptExplanationSlide: React.FC<{ data: SlideData }> = ({ data })
   const contentLen = data.content?.join(' ').length || 0;
   // Reduce font size dynamically based on length of text
   const pFontSize = contentLen > 300 ? '24px' : contentLen > 150 ? '32px' : '45px';
+  
+  let cleanLatex = '';
+  if (data.latex) {
+    cleanLatex = Array.isArray(data.latex) ? data.latex.join(' ') : String(data.latex);
+    cleanLatex = cleanLatex.replace(/\$/g, '');
+  }
 
   return (
     <SlideWrapper bgColor="#fce7f3">
@@ -69,9 +75,9 @@ export const ConceptExplanationSlide: React.FC<{ data: SlideData }> = ({ data })
       </div>
       <div style={{ fontSize: pFontSize, color: '#9d174d', lineHeight: '1.6' }}>
         {data.content?.map((p, i) => <p key={i}>{p}</p>)}
-        {data.latex && (
+        {cleanLatex && (
           <div style={{ marginTop: '30px', padding: '20px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 10px 25px rgba(219,39,119,0.2)', textAlign: 'center', fontSize: '40px' }}>
-            <Latex>{`$$${data.latex}$$`}</Latex>
+            <Latex>{`$$${cleanLatex}$$`}</Latex>
           </div>
         )}
       </div>
@@ -155,9 +161,11 @@ export const ExampleCaseStudySlide: React.FC<{ data: SlideData }> = ({ data }) =
 };
 
 export const SummarySlide: React.FC<{ data: SlideData }> = ({ data }) => {
+  const contentLen = data.content?.join(' ').length || 0;
   const numItems = data.content?.length || 0;
-  const itemFontSize = numItems > 5 ? '30px' : '45px';
-  const marginB = numItems > 5 ? '20px' : '30px';
+  
+  const itemFontSize = contentLen > 300 ? '26px' : (contentLen > 150 || numItems > 5) ? '32px' : '45px';
+  const marginB = (contentLen > 200 || numItems > 5) ? '15px' : '30px';
 
   return (
     <SlideWrapper bgColor="#ecfdf5">
