@@ -106,6 +106,10 @@ export default function Home() {
     setVideoUrl(null);
 
     try {
+      if (!webhookUrl) {
+        throw new Error("Webhook URL is not configured. Please check your environment variables.");
+      }
+
       const res = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
