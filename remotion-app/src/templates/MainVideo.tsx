@@ -20,8 +20,8 @@ export const MainVideo: React.FC<{ slides: SlideData[], audioUrls: string[] }> =
   return (
     <>
       {slides.map((slide, index) => {
-        // Enforce a minimum duration of 3 seconds (90 frames at 30fps) for animation to complete
-        const durationInFrames = Math.max(Math.ceil(slide.durationInSeconds * 30), 90);
+        // Enforce a minimum duration of 3 seconds (72 frames at 24fps) for animation to complete
+        const durationInFrames = Math.max(Math.ceil((slide.durationInSeconds || 5) * 24), 72);
         const startFrame = currentFrameOffset;
         currentFrameOffset += durationInFrames;
         

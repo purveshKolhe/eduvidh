@@ -198,67 +198,6 @@ Original line:
   slide_videos_bytes = [call.get() for call in worker_calls]
 May 03  14:18:53.800
 Worker rendering slide 0
-May 03  14:18:54.603
-Traceback (most recent call last):
-May 03  14:18:54.603
-  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
-    yield
-May 03  14:18:54.603
-  File "/pkg/modal/_container_entrypoint.py", line 134, in run_input_async
-    value = await io_context.call_function_async()
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:54.603
-  File "/pkg/modal/_runtime/container_io_manager.py", line 251, in call_function_async
-    value = await expected_coro
-            ^^^^^^^^^^^^^^^^^^^
-May 03  14:18:54.603
-  File "/root/modal_app.py", line 166, in orchestrate_job
-    slide_videos_bytes = [call.get() for call in worker_calls]
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:54.603
-  File "/root/modal_app.py", line 166, in <listcomp>
-    slide_videos_bytes = [call.get() for call in worker_calls]
-                          ^^^^^^^^^^
-May 03  14:18:54.603
-  File "/pkg/modal/_object.py", line 46, in wrapped
-    return await method(self, *args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:54.603
-  File "/pkg/modal/_functions.py", line 1912, in get
-    return await self._invocation().poll_function(timeout=timeout, index=index)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:54.603
-  File "/pkg/modal/_functions.py", line 329, in poll_function
-    return await _process_result(
-           ^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:54.603
-  File "/pkg/modal/_utils/function_utils.py", line 527, in _process_result
-    raise exc_with_hints(exc)
-  File "<ta-01KQPGDAVQ5SKGWH5JBV2YN2VK>:/root/modal_app.py", line 76, in render_slide_worker
-May 03  14:18:54.603
-Exception: Remotion failed: node:internal/modules/cjs/loader:1210
-  throw err;
-  ^
-
-Error: Cannot find module './dist/index'
-Require stack:
-- /remotion-app/node_modules/.bin/remotion
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18)
-    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
-    at Module._compile (node:internal/modules/cjs/loader:1521:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
-    at Module.load (node:internal/modules/cjs/loader:1266:32)
-    at Module._load (node:internal/modules/cjs/loader:1091:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
-}
-
-Node.js v20.20.2
-
 May 03  14:18:54.503
 Remotion Error: node:internal/modules/cjs/loader:1210
   throw err;
@@ -324,18 +263,75 @@ Require stack:
 
 Node.js v20.20.2
 
-May 03  14:18:54.903
-Worker rendering slide 2
+May 03  14:18:54.603
+Traceback (most recent call last):
+May 03  14:18:54.603
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:18:54.603
+  File "/pkg/modal/_container_entrypoint.py", line 134, in run_input_async
+    value = await io_context.call_function_async()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:54.603
+  File "/pkg/modal/_runtime/container_io_manager.py", line 251, in call_function_async
+    value = await expected_coro
+            ^^^^^^^^^^^^^^^^^^^
+May 03  14:18:54.603
+  File "/root/modal_app.py", line 166, in orchestrate_job
+    slide_videos_bytes = [call.get() for call in worker_calls]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:54.603
+  File "/root/modal_app.py", line 166, in <listcomp>
+    slide_videos_bytes = [call.get() for call in worker_calls]
+                          ^^^^^^^^^^
+May 03  14:18:54.603
+  File "/pkg/modal/_object.py", line 46, in wrapped
+    return await method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:54.603
+  File "/pkg/modal/_functions.py", line 1912, in get
+    return await self._invocation().poll_function(timeout=timeout, index=index)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:54.603
+  File "/pkg/modal/_functions.py", line 329, in poll_function
+    return await _process_result(
+           ^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:54.603
+  File "/pkg/modal/_utils/function_utils.py", line 527, in _process_result
+    raise exc_with_hints(exc)
+  File "<ta-01KQPGDAVQ5SKGWH5JBV2YN2VK>:/root/modal_app.py", line 76, in render_slide_worker
+May 03  14:18:54.603
+Exception: Remotion failed: node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module './dist/index'
+Require stack:
+- /remotion-app/node_modules/.bin/remotion
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
+}
+
+Node.js v20.20.2
+
 May 03  14:18:54.705
 Worker rendering slide 1
+May 03  14:18:54.903
+Worker rendering slide 2
 May 03  14:18:55.098
 Worker rendering slide 3
 May 03  14:18:55.182
 Worker rendering slide 4
-May 03  14:18:55.480
-Worker rendering slide 6
-May 03  14:18:55.466
-Worker rendering slide 7
 May 03  14:18:55.317
 Remotion Error: node:internal/modules/cjs/loader:1210
   throw err;
@@ -400,12 +396,16 @@ Require stack:
 
 Node.js v20.20.2
 
+May 03  14:18:55.466
+Worker rendering slide 7
+May 03  14:18:55.480
+Worker rendering slide 6
+May 03  14:18:55.514
+Worker rendering slide 5
 May 03  14:18:55.596
 Worker rendering slide 9
 May 03  14:18:55.605
 Worker rendering slide 8
-May 03  14:18:55.514
-Worker rendering slide 5
 May 03  14:18:56.051
 Remotion Error: node:internal/modules/cjs/loader:1210
   throw err;
@@ -446,6 +446,70 @@ May 03  14:18:56.054
   File "/root/modal_app.py", line 76, in render_slide_worker
     raise Exception(f"Remotion failed: {process.stderr}")
 May 03  14:18:56.054
+Exception: Remotion failed: node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module './dist/index'
+Require stack:
+- /remotion-app/node_modules/.bin/remotion
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
+}
+
+Node.js v20.20.2
+
+May 03  14:18:56.133
+Remotion Error: node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module './dist/index'
+Require stack:
+- /remotion-app/node_modules/.bin/remotion
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
+}
+
+Node.js v20.20.2
+
+May 03  14:18:56.134
+Traceback (most recent call last):
+May 03  14:18:56.134
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:18:56.134
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:56.134
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:18:56.135
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:18:56.135
 Exception: Remotion failed: node:internal/modules/cjs/loader:1210
   throw err;
   ^
@@ -594,70 +658,6 @@ Require stack:
 
 Node.js v20.20.2
 
-May 03  14:18:56.133
-Remotion Error: node:internal/modules/cjs/loader:1210
-  throw err;
-  ^
-
-Error: Cannot find module './dist/index'
-Require stack:
-- /remotion-app/node_modules/.bin/remotion
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18)
-    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
-    at Module._compile (node:internal/modules/cjs/loader:1521:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
-    at Module.load (node:internal/modules/cjs/loader:1266:32)
-    at Module._load (node:internal/modules/cjs/loader:1091:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
-}
-
-Node.js v20.20.2
-
-May 03  14:18:56.134
-Traceback (most recent call last):
-May 03  14:18:56.134
-  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
-    yield
-May 03  14:18:56.134
-  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
-    values = io_context.call_function_sync()
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:56.134
-  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
-    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
-                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-May 03  14:18:56.135
-  File "/root/modal_app.py", line 76, in render_slide_worker
-    raise Exception(f"Remotion failed: {process.stderr}")
-May 03  14:18:56.135
-Exception: Remotion failed: node:internal/modules/cjs/loader:1210
-  throw err;
-  ^
-
-Error: Cannot find module './dist/index'
-Require stack:
-- /remotion-app/node_modules/.bin/remotion
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18)
-    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
-    at Module._compile (node:internal/modules/cjs/loader:1521:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
-    at Module.load (node:internal/modules/cjs/loader:1266:32)
-    at Module._load (node:internal/modules/cjs/loader:1091:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
-}
-
-Node.js v20.20.2
-
 May 03  14:18:56.588
 Remotion Error: node:internal/modules/cjs/loader:1210
   throw err;
@@ -745,30 +745,6 @@ Require stack:
 
 Node.js v20.20.2
 
-May 03  14:18:56.797
-Remotion Error: node:internal/modules/cjs/loader:1210
-  throw err;
-  ^
-
-Error: Cannot find module './dist/index'
-Require stack:
-- /remotion-app/node_modules/.bin/remotion
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18)
-    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
-    at Module._compile (node:internal/modules/cjs/loader:1521:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
-    at Module.load (node:internal/modules/cjs/loader:1266:32)
-    at Module._load (node:internal/modules/cjs/loader:1091:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
-}
-
-Node.js v20.20.2
-
 May 03  14:18:56.752
 Traceback (most recent call last):
 May 03  14:18:56.752
@@ -784,44 +760,6 @@ May 03  14:18:56.752
   File "/root/modal_app.py", line 76, in render_slide_worker
     raise Exception(f"Remotion failed: {process.stderr}")
 May 03  14:18:56.752
-Exception: Remotion failed: node:internal/modules/cjs/loader:1210
-  throw err;
-  ^
-
-Error: Cannot find module './dist/index'
-Require stack:
-- /remotion-app/node_modules/.bin/remotion
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18)
-    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
-    at Module._compile (node:internal/modules/cjs/loader:1521:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
-    at Module.load (node:internal/modules/cjs/loader:1266:32)
-    at Module._load (node:internal/modules/cjs/loader:1091:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
-}
-
-Node.js v20.20.2
-
-May 03  14:18:56.800
-Traceback (most recent call last):
-May 03  14:18:56.800
-  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
-    yield
-May 03  14:18:56.800
-  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
-    values = io_context.call_function_sync()
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
-    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
-                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/modal_app.py", line 76, in render_slide_worker
-    raise Exception(f"Remotion failed: {process.stderr}")
-May 03  14:18:56.800
 Exception: Remotion failed: node:internal/modules/cjs/loader:1210
   throw err;
   ^
@@ -906,5 +844,866 @@ Require stack:
   code: 'MODULE_NOT_FOUND',
   requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
 }
+
+Node.js v20.20.2
+
+May 03  14:18:56.797
+Remotion Error: node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module './dist/index'
+Require stack:
+- /remotion-app/node_modules/.bin/remotion
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
+}
+
+Node.js v20.20.2
+
+May 03  14:18:56.800
+Traceback (most recent call last):
+May 03  14:18:56.800
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:18:56.800
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:18:56.800
+Exception: Remotion failed: node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module './dist/index'
+Require stack:
+- /remotion-app/node_modules/.bin/remotion
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/remotion-app/node_modules/.bin/remotion:4:15)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/remotion-app/node_modules/.bin/remotion' ]
+}
+
+Node.js v20.20.2
+
+May 03  14:21:11.153
+Building image im-UCdNnGcMCuXtEpitMG5jVX
+May 03  14:21:11.511
+
+=> Step 0: FROM base
+May 03  14:21:11.513
+
+=> Step 1: COPY . /
+May 03  14:21:12.475
+Saving image...
+May 03  14:21:12.987
+Image saved, took 512.10ms
+May 03  14:21:12.987
+
+Built image im-UCdNnGcMCuXtEpitMG5jVX in 1.83s
+
+
+May 03  14:21:14.004
+Building image im-V1OO33Yu8d6Bv2xtTWe9rh
+May 03  14:21:14.406
+
+=> Step 0: FROM base
+May 03  14:21:14.406
+
+=> Step 1: RUN cd /remotion-app && npm install --legacy-peer-deps
+May 03  14:21:19.998
+npm warn deprecated source-map@0.8.0-beta.0: The work that was done in this beta branch won't be included in future versions
+May 03  14:21:25.924
+
+added 324 packages, and audited 325 packages in 11s
+May 03  14:21:25.924
+
+May 03  14:21:25.924
+68 packages are looking for funding
+May 03  14:21:25.924
+  run `npm fund` for details
+May 03  14:21:25.929
+
+2 low severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+May 03  14:21:25.931
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.13.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.13.0
+npm notice To update run: npm install -g npm@11.13.0
+npm notice
+May 03  14:21:26.855
+Saving image...
+May 03  14:21:30.248
+Image saved, took 3.39s
+May 03  14:21:30.248
+
+Built image im-V1OO33Yu8d6Bv2xtTWe9rh in 16.24s
+
+
+May 03  14:22:51.052
+   POST / -> 200 OK  (duration: 6.63 s, execution: 1.54 s)
+May 03  14:22:55.289
+Starting job ed54fdbb-ae84-48e6-9b47-6a8bcba4bde3 for prompt: databases
+May 03  14:23:05.946
+Spawning Remotion render workers...
+May 03  14:23:06.085
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.186
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.259
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.341
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.412
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.509
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.576
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.663
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.736
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.798
+/root/modal_app.py:163: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  call = await render_slide_worker.spawn.aio(slide, i, audio_urls[i])
+
+Original line:
+  call = render_slide_worker.spawn(slide, i, audio_urls[i])
+May 03  14:23:06.865
+/root/modal_app.py:166: AsyncUsageWarning: A blocking Modal interface is being used in an async context.
+
+This may cause performance issues or bugs. Consider rewriting to use Modal's async interfaces:
+https://modal.com/docs/guide/async
+
+Suggested rewrite:
+  slide_videos_bytes = [await call.get.aio() for call in worker_calls]
+
+Original line:
+  slide_videos_bytes = [call.get() for call in worker_calls]
+May 03  14:23:11.180
+Worker rendering slide 0
+May 03  14:23:11.253
+Worker rendering slide 1
+May 03  14:23:11.352
+Worker rendering slide 2
+May 03  14:23:11.421
+Worker rendering slide 3
+May 03  14:23:11.734
+Worker rendering slide 4
+May 03  14:23:12.026
+Worker rendering slide 5
+May 03  14:23:12.520
+Worker rendering slide 6
+May 03  14:23:12.909
+Worker rendering slide 7
+May 03  14:23:12.953
+Worker rendering slide 8
+May 03  14:23:13.238
+Worker rendering slide 9
+May 03  14:23:18.728
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:18.732
+Traceback (most recent call last):
+May 03  14:23:18.732
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:18.732
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:18.732
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:19.123
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:19.126
+Traceback (most recent call last):
+May 03  14:23:19.127
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:19.127
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:19.127
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:19.628
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:19.631
+Traceback (most recent call last):
+May 03  14:23:19.631
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:19.631
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:19.631
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:19.750
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+May 03  14:23:19.750
+
+May 03  14:23:19.753
+Traceback (most recent call last):
+May 03  14:23:19.754
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:19.754
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:19.754
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:20.439
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:20.441
+Traceback (most recent call last):
+May 03  14:23:20.442
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:20.442
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:20.442
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:20.442
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:20.770
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+May 03  14:23:20.770
+
+May 03  14:23:20.774
+Traceback (most recent call last):
+May 03  14:23:20.774
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:20.774
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:20.798
+Traceback (most recent call last):
+May 03  14:23:20.798
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:20.798
+  File "/pkg/modal/_container_entrypoint.py", line 134, in run_input_async
+    value = await io_context.call_function_async()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:20.798
+  File "/pkg/modal/_runtime/container_io_manager.py", line 251, in call_function_async
+    value = await expected_coro
+            ^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 166, in orchestrate_job
+    slide_videos_bytes = [call.get() for call in worker_calls]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 166, in <listcomp>
+    slide_videos_bytes = [call.get() for call in worker_calls]
+                          ^^^^^^^^^^
+May 03  14:23:20.798
+  File "/pkg/modal/_object.py", line 46, in wrapped
+    return await method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:20.798
+  File "/pkg/modal/_functions.py", line 1912, in get
+    return await self._invocation().poll_function(timeout=timeout, index=index)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_functions.py", line 329, in poll_function
+    return await _process_result(
+           ^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:20.798
+  File "/pkg/modal/_utils/function_utils.py", line 527, in _process_result
+    raise exc_with_hints(exc)
+May 03  14:23:20.798
+  File "<ta-01KQPGN4THAAWN5M7Q34K39X66>:/root/modal_app.py", line 76, in render_slide_worker
+May 03  14:23:20.798
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:20.902
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:20.906
+Traceback (most recent call last):
+May 03  14:23:20.906
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:20.906
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:20.906
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:21.224
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:21.202
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+May 03  14:23:21.202
+
+May 03  14:23:21.205
+Traceback (most recent call last):
+May 03  14:23:21.206
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:21.228
+Traceback (most recent call last):
+May 03  14:23:21.228
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:21.228
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:21.228
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:21.229
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:21.229
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+
+May 03  14:23:22.460
+Remotion Error: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.20.2
+May 03  14:23:22.460
+
+May 03  14:23:22.466
+Traceback (most recent call last):
+May 03  14:23:22.466
+  File "/pkg/modal/_runtime/container_io_manager.py", line 947, in handle_input_exception
+    yield
+May 03  14:23:22.466
+  File "/pkg/modal/_container_entrypoint.py", line 172, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:22.466
+  File "/pkg/modal/_runtime/container_io_manager.py", line 225, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 03  14:23:22.467
+  File "/root/modal_app.py", line 76, in render_slide_worker
+    raise Exception(f"Remotion failed: {process.stderr}")
+May 03  14:23:22.467
+Exception: Remotion failed: /remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261
+            reject(new Error([
+                   ^
+
+Error: Failed to launch the browser process!
+Error: Closed with 127 signal: null
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:32)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+/remotion-app/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+Troubleshooting: https://remotion.dev/docs/troubleshooting/browser-launch
+    at onClose (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:261:20)
+    at ChildProcess.<anonymous> (/remotion-app/node_modules/@remotion/renderer/dist/browser/BrowserRunner.js:252:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
 
 Node.js v20.20.2
