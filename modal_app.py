@@ -26,7 +26,7 @@ render_image = (
         "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
         "apt-get install -y nodejs",
     )
-    .pip_install("supabase")
+    .pip_install("supabase", "groq", "edge-tts", "aiohttp", "ffmpeg-python")
     # Copy the Remotion project
     .add_local_dir("remotion-app", remote_path="/remotion-app", copy=True)
     .run_commands("cd /remotion-app && npm install --legacy-peer-deps")

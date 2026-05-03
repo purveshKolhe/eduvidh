@@ -26,7 +26,10 @@ export default function Home() {
     if (!jobId || status === "completed" || status === "failed") return;
 
     const interval = setInterval(async () => {
-      if (!supabaseUrl) return; // Missing credentials protection
+      if (!supabaseUrl || supabaseUrl === "https://placeholder.supabase.co") {
+        console.error("Missing or invalid Supabase URL. Please check your .env.local file.");
+        return;
+      }
       
       const { data, error } = await supabase
         .from("videos")
