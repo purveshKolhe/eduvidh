@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
-import { Sparkles, Loader2, Video, Send, CheckCircle, AlertCircle, Lock, LayoutTemplate } from "lucide-react";
+import { Sparkles, Loader2, Video, Send, CheckCircle, AlertCircle, Lock, LayoutTemplate, Clock } from "lucide-react";
 
 // Initialize Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL.startsWith("http") 
@@ -21,6 +21,7 @@ export default function Home() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generationsLeft, setGenerationsLeft] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Rate Limiting (Local Storage)
   useEffect(() => {
@@ -46,20 +47,20 @@ export default function Home() {
       setGenerationsLeft(Math.max(0, 3 - count));
     };
     checkRateLimit();
-  }, [status]); // Re-check when status changes
+  }, [status]);
 
-  const incrementRateLimit = () => {
-    const today = new Date().toDateString();
-    const storedStr = localStorage.getItem("edu_video_rate_limit");
-    let count = 0;
-    if (storedStr) {
-      const stored = JSON.parse(storedStr);
-      if (stored.date === today) count = stored.count;
+  // Timer Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (jobId && status !== "completed" && status !== "failed") {
+      interval = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    } else if (status === "idle") {
+      setElapsedSeconds(0);
     }
-    count += 1;
-    localStorage.setItem("edu_video_rate_limit", JSON.stringify({ date: today, count }));
-    setGenerationsLeft(Math.max(0, 3 - count));
-  };
+    return () => clearInterval(interval);
+  }, [jobId, status]);
 
   // Polling Effect
   useEffect(() => {
@@ -67,7 +68,6 @@ export default function Home() {
 
     const interval = setInterval(async () => {
       if (!supabaseUrl || supabaseUrl === "https://placeholder.supabase.co") {
-        console.error("Missing or invalid Supabase URL. Please check your .env.local file.");
         return;
       }
       
@@ -104,6 +104,7 @@ export default function Home() {
     setErrorMessage(null);
     setJobId(null);
     setVideoUrl(null);
+    setElapsedSeconds(0);
 
     try {
       if (!webhookUrl) {
@@ -129,23 +130,31 @@ export default function Home() {
     }
   };
 
-  const getStatusText = () => {
-    switch (status) {
-      case "submitting": return "Awakening the AI...";
-      case "pending": return "Writing script & spawning workers...";
-      case "script_generated": return "Script ready. Rendering visuals...";
-      case "rendering": return "Stitching audio and frames...";
-      case "completed": return "Your masterpiece is ready!";
-      case "failed": return "Oh no, something went wrong.";
-      default: return "Ready to create";
+  const incrementRateLimit = () => {
+    const today = new Date().toDateString();
+    const storedStr = localStorage.getItem("edu_video_rate_limit");
+    let count = 0;
+    if (storedStr) {
+      const stored = JSON.parse(storedStr);
+      if (stored.date === today) count = stored.count;
     }
+    count += 1;
+    localStorage.setItem("edu_video_rate_limit", JSON.stringify({ date: today, count }));
+    setGenerationsLeft(Math.max(0, 3 - count));
   };
 
-  const getStatusIcon = () => {
-    if (status === "failed") return <AlertCircle className="text-rose-500 w-10 h-10" />;
-    if (status === "completed") return <CheckCircle className="text-emerald-500 w-10 h-10" />;
-    return <Loader2 className="text-indigo-500 w-10 h-10 animate-spin" />;
+  const getPhaseMessage = () => {
+    if (elapsedSeconds < 15) return "Creating script...";
+    if (elapsedSeconds < 22) return "Converting to JSON...";
+    if (elapsedSeconds < 37) return "Fanning out the GPUs...";
+    if (elapsedSeconds < 52) return "Generating your TTS...";
+    return "Rendering your video / upscaling it...";
   };
+
+  const countdownValue = Math.max(0, 60 - elapsedSeconds);
+  const minutes = Math.floor(countdownValue / 60);
+  const seconds = countdownValue % 60;
+  const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-pink-200">
@@ -155,9 +164,6 @@ export default function Home() {
           <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-indigo-950">
             <LayoutTemplate className="w-6 h-6 text-pink-500" />
             EduGen AI
-          </div>
-          <div className="flex items-center gap-4 text-slate-500">
-            {/* Social links removed */}
           </div>
         </div>
       </header>
@@ -248,7 +254,7 @@ export default function Home() {
             )}
           </AnimatePresence>
 
-          {/* Loading / Polling Dashboard */}
+          {/* Countdown / Polling Dashboard */}
           <AnimatePresence>
             {status !== "idle" && status !== "submitting" && status !== "failed" && status !== "completed" && (
               <motion.div
@@ -257,21 +263,47 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.5 }}
-                className="w-full max-w-2xl bg-white/80 backdrop-blur-2xl border border-white rounded-[2rem] p-10 shadow-2xl flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden"
+                className="w-full max-w-2xl bg-white/90 backdrop-blur-3xl border border-white rounded-[2.5rem] p-12 shadow-2xl flex flex-col items-center justify-center min-h-[400px] relative overflow-hidden"
               >
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
-                  <div className="h-full bg-gradient-to-r from-indigo-500 via-pink-500 to-indigo-500 animate-[pulse_2s_ease-in-out_infinite] w-1/2 rounded-full"></div>
+                {/* Circular Progress Background */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                   <Clock className="w-96 h-96 text-indigo-900" />
                 </div>
-                {getStatusIcon()}
-                <h3 className="mt-6 text-2xl font-bold text-slate-800 text-center">{getStatusText()}</h3>
-                <p className="text-slate-500 mt-3 font-medium text-center max-w-sm leading-relaxed">
-                  Our AI pipeline is currently generating your video. This process usually takes under a minute!
-                </p>
-                
-                <div className="mt-10 flex gap-2 flex-wrap justify-center">
-                  <div className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-500 ${['pending', 'script_generated', 'rendering'].includes(status) ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200' : 'bg-slate-100 text-slate-400'}`}>1. Orchestration</div>
-                  <div className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-500 ${['script_generated', 'rendering'].includes(status) ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200' : 'bg-slate-100 text-slate-400'}`}>2. Video Chunking</div>
-                  <div className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-500 ${status === 'rendering' ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-200' : 'bg-slate-100 text-slate-400'}`}>3. Audio Merging</div>
+
+                <div className="relative flex flex-col items-center">
+                  <motion.div 
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-8xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-indigo-600 to-indigo-950 tabular-nums tracking-tighter"
+                  >
+                    {timeString}
+                  </motion.div>
+                  
+                  <motion.div 
+                    key={getPhaseMessage()}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-8 text-2xl font-bold text-slate-800 flex items-center gap-3"
+                  >
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
+                    {getPhaseMessage()}
+                  </motion.div>
+
+                  <p className="mt-4 text-slate-500 font-medium text-center max-w-xs leading-relaxed">
+                    Please wait while our high-performance cluster prepares your educational video.
+                  </p>
+                  <p className="mt-2 text-slate-400 text-xs font-semibold uppercase tracking-wider text-center">
+                    It could take 1-2 minutes. Have patience.
+                  </p>
+                </div>
+
+                {/* Bottom Progress Bar */}
+                <div className="absolute bottom-0 left-0 w-full h-2 bg-slate-100">
+                  <motion.div 
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${Math.min(100, (elapsedSeconds / 60) * 100)}%` }}
+                    className="h-full bg-gradient-to-r from-indigo-500 via-pink-500 to-indigo-500"
+                  />
                 </div>
               </motion.div>
             )}
