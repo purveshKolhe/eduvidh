@@ -27,8 +27,8 @@ render_image = (
         "apt-get install -y nodejs",
     )
     .pip_install("supabase", "groq", "edge-tts", "aiohttp", "ffmpeg-python")
-    # Copy the Remotion project
-    .add_local_dir("remotion-app", remote_path="/remotion-app", copy=True)
+    # Copy the Remotion project (excluding local node_modules to force a clean install)
+    .add_local_dir("remotion-app", remote_path="/remotion-app", copy=True, ignore=["node_modules"])
     .run_commands("cd /remotion-app && npm install --legacy-peer-deps")
 )
 
