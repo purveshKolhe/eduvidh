@@ -113,6 +113,7 @@ async def orchestrate_job(job_id: str, prompt: str):
         ],
         model="openai/gpt-oss-20b",
         temperature=0.7,
+        max_tokens=4096,
     )
     
     try:
@@ -204,6 +205,6 @@ async def start_generation(request: dict):
     job_id = res.data[0]['id']
     
     # Fire and forget
-    orchestrate_job.spawn(job_id, prompt)
+    await orchestrate_job.spawn.aio(job_id, prompt)
     
     return {"job_id": job_id, "status": "pending"}
