@@ -14,7 +14,7 @@ app = modal.App("edu-video-generator")
 # Image for Orchestrator
 orchestrator_image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("supabase", "groq", "edge-tts", "aiohttp", "ffmpeg-python")
+    .pip_install("supabase", "groq", "edge-tts", "aiohttp", "ffmpeg-python", "fastapi[standard]")
     .apt_install("ffmpeg")
 )
 
@@ -28,8 +28,8 @@ render_image = (
     )
     .pip_install("supabase")
     # Copy the Remotion project
-    .copy_local_dir("remotion-app", "/remotion-app")
-    .run_commands("cd /remotion-app && npm install lucide-react react-latex-next katex --legacy-peer-deps && npm install")
+    .add_local_dir("remotion-app", remote_path="/remotion-app", copy=True)
+    .run_commands("cd /remotion-app && npm install --legacy-peer-deps")
 )
 
 # --- Secrets ---
@@ -190,7 +190,7 @@ async def orchestrate_job(job_id: str, prompt: str):
 
 # --- Webhook ---
 @app.function(image=orchestrator_image, secrets=[supabase_secret])
-@modal.web_endpoint(method="POST")
+@modal.fastapi_endpoint(method="POST")
 async def start_generation(request: dict):
     prompt = request.get("prompt")
     if not prompt:
