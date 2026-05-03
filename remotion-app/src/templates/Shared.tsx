@@ -1,7 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import 'katex/dist/katex.min.css';
-import Latex from 'react-latex-next';
 import * as Icons from 'lucide-react';
 
 export type SlideData = {
