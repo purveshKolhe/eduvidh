@@ -163,7 +163,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-indigo-950">
             <LayoutTemplate className="w-6 h-6 text-pink-500" />
-            EduGen AI
+            EduGen AI(Part of Luvia)
           </div>
         </div>
       </header>
