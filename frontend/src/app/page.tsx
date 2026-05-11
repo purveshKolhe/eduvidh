@@ -185,7 +185,7 @@ export default function Home() {
             className="text-center mb-10 w-full"
           >
             <div className="inline-flex items-center justify-center space-x-2 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100 mb-8 text-indigo-700 font-semibold tracking-wide text-xs uppercase shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 mr-1 text-pink-500" /> Powered by Advanced AI
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-pink-500" /> Powered by Luvia AI
             </div>
             <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-indigo-950 via-slate-800 to-pink-700 tracking-tight leading-[1.1] pb-2">
               Transform Ideas into <br className="hidden md:block"/> Educational Videos
