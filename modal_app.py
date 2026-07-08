@@ -5,9 +5,7 @@ import asyncio
 import tempfile
 import subprocess
 import shutil
-from supabase import create_client, Client
-from groq import AsyncGroq
-import edge_tts
+
 
 # Modal App Definition
 app = modal.App("edu-video-generator")
@@ -42,6 +40,7 @@ supabase_secret = modal.Secret.from_dotenv()
 
 # --- Helper Functions ---
 async def generate_audio(text, output_path):
+    import edge_tts
     communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
     await communicate.save(output_path)
 
@@ -128,6 +127,8 @@ def render_slide_worker(slide_data, slide_index, est_duration):
     secrets=[groq_secret, supabase_secret]
 )
 async def orchestrate_job(job_id: str, prompt: str):
+    from supabase import create_client, Client
+    from groq import AsyncGroq
     print(f"Starting job {job_id} for prompt: {prompt}")
     
     supabase_url = os.environ.get("SUPABASE_URL")
@@ -239,37 +240,38 @@ async def orchestrate_job(job_id: str, prompt: str):
     print(f"Job {job_id} completed successfully. URL: {final_url}")
 
 # --- Webhook ---
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-web_app = FastAPI()
-
-web_app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@web_app.post("/")
-async def start_generation_endpoint(request: dict):
-    prompt = request.get("prompt")
-    if not prompt:
-        return {"error": "Missing prompt"}
-        
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    supabase: Client = create_client(supabase_url, supabase_key)
-    
-    res = supabase.table("videos").insert({"prompt": prompt, "status": "pending"}).execute()
-    job_id = res.data[0]['id']
-    
-    await orchestrate_job.spawn.aio(job_id, prompt)
-    
-    return {"job_id": job_id, "status": "pending"}
-
 @app.function(image=orchestrator_image, secrets=[supabase_secret])
 @modal.asgi_app()
 def start_generation():
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+
+    web_app = FastAPI()
+
+    web_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @web_app.post("/")
+    async def start_generation_endpoint(request: dict):
+        from supabase import create_client, Client
+        prompt = request.get("prompt")
+        if not prompt:
+            return {"error": "Missing prompt"}
+            
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        supabase: Client = create_client(supabase_url, supabase_key)
+        
+        res = supabase.table("videos").insert({"prompt": prompt, "status": "pending"}).execute()
+        job_id = res.data[0]['id']
+        
+        await orchestrate_job.spawn.aio(job_id, prompt)
+        
+        return {"job_id": job_id, "status": "pending"}
+
     return web_app
