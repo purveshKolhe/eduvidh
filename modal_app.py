@@ -239,9 +239,21 @@ async def orchestrate_job(job_id: str, prompt: str):
     print(f"Job {job_id} completed successfully. URL: {final_url}")
 
 # --- Webhook ---
-@app.function(image=orchestrator_image, secrets=[supabase_secret])
-@modal.fastapi_endpoint(method="POST")
-async def start_generation(request: dict):
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+web_app = FastAPI()
+
+web_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@web_app.post("/")
+async def start_generation_endpoint(request: dict):
     prompt = request.get("prompt")
     if not prompt:
         return {"error": "Missing prompt"}
@@ -256,3 +268,8 @@ async def start_generation(request: dict):
     await orchestrate_job.spawn.aio(job_id, prompt)
     
     return {"job_id": job_id, "status": "pending"}
+
+@app.function(image=orchestrator_image, secrets=[supabase_secret])
+@modal.asgi_app()
+def start_generation():
+    return web_app
