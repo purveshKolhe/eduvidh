@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
-import { Sparkles, Loader2, Video, Send, CheckCircle, AlertCircle, Lock, LayoutTemplate, Clock } from "lucide-react";
+import { Sparkles, Loader2, Video, Send, CheckCircle, AlertCircle, LayoutTemplate, Clock } from "lucide-react";
 
 // Initialize Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL.startsWith("http") 
@@ -20,34 +20,7 @@ export default function Home() {
   const [status, setStatus] = useState<string>("idle");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [generationsLeft, setGenerationsLeft] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  // Rate Limiting (Local Storage)
-  useEffect(() => {
-    const checkRateLimit = () => {
-      const today = new Date().toDateString();
-      const storedStr = localStorage.getItem("edu_video_rate_limit");
-      let count = 0;
-      
-      if (storedStr) {
-        try {
-          const stored = JSON.parse(storedStr);
-          if (stored.date === today) {
-            count = stored.count;
-          } else {
-            localStorage.setItem("edu_video_rate_limit", JSON.stringify({ date: today, count: 0 }));
-          }
-        } catch (e) {
-          localStorage.setItem("edu_video_rate_limit", JSON.stringify({ date: today, count: 0 }));
-        }
-      } else {
-        localStorage.setItem("edu_video_rate_limit", JSON.stringify({ date: today, count: 0 }));
-      }
-      setGenerationsLeft(Math.max(0, 3 - count));
-    };
-    checkRateLimit();
-  }, [status]);
 
   // Timer Effect
   useEffect(() => {
@@ -98,7 +71,7 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim() || generationsLeft === 0) return;
+    if (!prompt.trim()) return;
 
     setStatus("submitting");
     setErrorMessage(null);
@@ -123,24 +96,10 @@ export default function Home() {
 
       setJobId(data.job_id);
       setStatus("pending");
-      incrementRateLimit();
     } catch (err: any) {
       setStatus("failed");
       setErrorMessage(err.message || "Failed to start job.");
     }
-  };
-
-  const incrementRateLimit = () => {
-    const today = new Date().toDateString();
-    const storedStr = localStorage.getItem("edu_video_rate_limit");
-    let count = 0;
-    if (storedStr) {
-      const stored = JSON.parse(storedStr);
-      if (stored.date === today) count = stored.count;
-    }
-    count += 1;
-    localStorage.setItem("edu_video_rate_limit", JSON.stringify({ date: today, count }));
-    setGenerationsLeft(Math.max(0, 3 - count));
   };
 
   const getPhaseMessage = () => {
@@ -213,24 +172,18 @@ export default function Home() {
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      disabled={status === "submitting" || generationsLeft === 0}
-                      placeholder={generationsLeft === 0 ? "Daily limit reached." : "e.g. Explain the mechanics of a black hole..."}
+                      disabled={status === "submitting"}
+                      placeholder="e.g. Explain the mechanics of a black hole..."
                       className="w-full bg-transparent resize-none outline-none px-5 py-4 text-slate-800 placeholder:text-slate-400 font-medium text-lg min-h-[120px]"
                     />
                     
                     <div className="flex items-center justify-between px-3 pb-1">
                       <div className="flex items-center text-sm font-semibold text-slate-500">
-                        {generationsLeft !== null && (
-                          generationsLeft === 0 ? (
-                            <span className="flex items-center text-rose-500 bg-rose-50 px-3 py-1 rounded-full"><Lock className="w-4 h-4 mr-1.5" /> Limit Reached</span>
-                          ) : (
-                            <span className="flex items-center text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{generationsLeft} videos left today</span>
-                          )
-                        )}
+                        <span className="flex items-center text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Unlimited videos today</span>
                       </div>
                       <button
                         type="submit"
-                        disabled={!prompt.trim() || status === "submitting" || generationsLeft === 0}
+                        disabled={!prompt.trim() || status === "submitting"}
                         className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 group/btn"
                       >
                         {status === "submitting" ? (
