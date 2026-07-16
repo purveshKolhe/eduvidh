@@ -35,8 +35,8 @@ render_image = (
 )
 
 # --- Secrets ---
-groq_secret = modal.Secret.from_dotenv()
-supabase_secret = modal.Secret.from_dotenv()
+groq_secret = modal.Secret.from_name("custom-secret")
+supabase_secret = modal.Secret.from_name("custom-secret")
 
 # --- Helper Functions ---
 async def generate_audio(text, output_path):

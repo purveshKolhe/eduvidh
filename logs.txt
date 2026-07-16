@@ -8,7 +8,7 @@ May 03  14:16:42.546
 Remotion Error: node:internal/modules/cjs/loader:1210
   throw err;
   ^
-
+holy
 Error: Cannot find module './dist/index'
 Require stack:
 - /remotion-app/node_modules/.bin/remotion
