@@ -23,6 +23,10 @@ orchestrator_image = (
         "boto3"
     )
     .apt_install("ffmpeg")
+    .env({
+        "AWS_REQUEST_CHECKSUM_CALCULATION": "WHEN_REQUIRED",
+        "AWS_RESPONSE_CHECKSUM_VALIDATION": "WHEN_REQUIRED"
+    })
     .add_local_python_source("db_and_storage")
 )
 
@@ -46,6 +50,10 @@ render_image = (
         "cd /remotion-app && npm install --legacy-peer-deps",
         "cd /remotion-app && npx remotion bundle src/index.ts --out-dir=bundled --log=error" # PRE-BUNDLE FOR SPEED!
     )
+    .env({
+        "AWS_REQUEST_CHECKSUM_CALCULATION": "WHEN_REQUIRED",
+        "AWS_RESPONSE_CHECKSUM_VALIDATION": "WHEN_REQUIRED"
+    })
     .add_local_python_source("db_and_storage")
 )
 
@@ -238,6 +246,7 @@ async def orchestrate_job(job_id: str, prompt: str):
             slide["durationInSeconds"] = max(len(text) * 0.07 + 2.0, 5.0)
         adapter.update_video(video_id=job_id, status="rendering", slides_data=slides)
         print("Spawning Remotion render workers...")
+        rendering_start_time = time.time()
         worker_calls = []
         for i, slide in enumerate(slides):
             worker_calls.append(await render_slide_worker.spawn.aio(slide, i, slide["durationInSeconds"]))
@@ -315,7 +324,7 @@ async def orchestrate_job(job_id: str, prompt: str):
             # This is aggregate active render work; it excludes queue/cold start and TTS.
             remotion_seconds = sum(metric["remotion_seconds"] for metric in worker_metrics)
             worker_ffmpeg_seconds = sum(metric["ffmpeg_seconds"] for metric in worker_metrics)
-            rendering_time = remotion_seconds + worker_ffmpeg_seconds + merge_ffmpeg_seconds
+            rendering_time = time.time() - rendering_start_time
 
             pipeline_stage = "video_upload"
             final_url = adapter.upload_video(final_output, job_id)
@@ -332,7 +341,8 @@ async def orchestrate_job(job_id: str, prompt: str):
                 "remotion": remotion_seconds,
                 "worker_ffmpeg": worker_ffmpeg_seconds,
                 "merge_ffmpeg": merge_ffmpeg_seconds,
-                "total": rendering_time,
+                "total_compute_seconds": remotion_seconds + worker_ffmpeg_seconds + merge_ffmpeg_seconds,
+                "wall_clock_rendering_seconds": rendering_time,
             },
         }
 
