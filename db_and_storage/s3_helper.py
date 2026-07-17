@@ -24,7 +24,11 @@ def get_s3_client() -> boto3.client:
     config = Config(
         retries={"max_attempts": 3, "mode": "standard"},
         signature_version="s3v4",
-        s3={'request_checksum_calculation': 'when_required'}
+        s3={
+            'payload_signing_enabled': False,
+            'request_checksum_calculation': 'when_required',
+            'response_checksum_validation': 'when_required'
+        }
     )
 
     client_kwargs = {
@@ -87,27 +91,22 @@ def upload_video_to_s3(
     # 2. Upload file
     logger.info(f"Uploading '{local_file_path}' to bucket '{bucket}' with key '{s3_key}'...")
     try:
-        extra_args = {
-            "ContentType": content_type
-        }
-        
+        extra_args = {}
         # If returning a public URL and not using pre-signed links, set ACL to public-read if permitted
         # Note: Some providers (like Cloudflare R2) do not support ACLs, or they may be disabled on AWS.
         use_public_acl = os.getenv("S3_USE_PUBLIC_ACL", "false").lower() == "true"
         if use_public_acl and not generate_presigned:
             extra_args["ACL"] = "public-read"
 
-        # Set high multipart threshold (e.g. 5GB) to force single-part upload and avoid chunked encoding issues in S3-compatible APIs
-        transfer_config = TransferConfig(
-            multipart_threshold=5 * 1024 * 1024 * 1024
-        )
+        with open(local_file_path, "rb") as f:
+            file_data = f.read()
 
-        s3_client.upload_file(
-            Filename=local_file_path,
+        s3_client.put_object(
             Bucket=bucket,
             Key=s3_key,
-            ExtraArgs=extra_args,
-            Config=transfer_config
+            Body=file_data,
+            ContentType=content_type,
+            **extra_args
         )
         logger.info("Upload completed successfully.")
 
