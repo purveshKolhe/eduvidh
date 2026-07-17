@@ -5,6 +5,7 @@ from typing import Optional
 import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
+from boto3.s3.transfer import TransferConfig
 
 logger = logging.getLogger(__name__)
 
@@ -96,11 +97,17 @@ def upload_video_to_s3(
         if use_public_acl and not generate_presigned:
             extra_args["ACL"] = "public-read"
 
+        # Set high multipart threshold (e.g. 5GB) to force single-part upload and avoid chunked encoding issues in S3-compatible APIs
+        transfer_config = TransferConfig(
+            multipart_threshold=5 * 1024 * 1024 * 1024
+        )
+
         s3_client.upload_file(
             Filename=local_file_path,
             Bucket=bucket,
             Key=s3_key,
-            ExtraArgs=extra_args
+            ExtraArgs=extra_args,
+            Config=transfer_config
         )
         logger.info("Upload completed successfully.")
 
