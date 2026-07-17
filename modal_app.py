@@ -23,6 +23,7 @@ orchestrator_image = (
         "boto3"
     )
     .apt_install("ffmpeg")
+    .add_local_python_source("db_and_storage")
 )
 
 # Image for Render Worker (needs Node.js and Remotion)
@@ -45,6 +46,7 @@ render_image = (
         "cd /remotion-app && npm install --legacy-peer-deps",
         "cd /remotion-app && npx remotion bundle src/index.ts --out-dir=bundled --log=error" # PRE-BUNDLE FOR SPEED!
     )
+    .add_local_python_source("db_and_storage")
 )
 
 # --- Secrets ---
