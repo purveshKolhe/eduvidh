@@ -25,6 +25,7 @@ def get_s3_client() -> boto3.client:
         retries={"max_attempts": 3, "mode": "standard"},
         signature_version="s3v4",
         s3={
+            'chunked_encoding_enabled': False,
             'payload_signing_enabled': False,
             'request_checksum_calculation': 'when_required',
             'response_checksum_validation': 'when_required'
