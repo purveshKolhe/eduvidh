@@ -69,7 +69,8 @@ async def generate_audio(text, output_path):
     image=render_image,
     cpu=2.0,
     memory=1024,
-    timeout=600
+    timeout=600,
+    scaledown_window=2
 )
 def render_slide_worker(slide_data, slide_index, est_duration):
     import time
@@ -168,7 +169,8 @@ def render_slide_worker(slide_data, slide_index, est_duration):
     cpu=1.0,
     memory=1024,
     timeout=1200,
-    secrets=app_secrets
+    secrets=app_secrets,
+    scaledown_window=2
 )
 async def orchestrate_job(job_id: str, prompt: str):
     import time
@@ -363,7 +365,7 @@ async def orchestrate_job(job_id: str, prompt: str):
 
 
 # --- Webhook ---
-@app.function(image=orchestrator_image, secrets=app_secrets)
+@app.function(image=orchestrator_image, secrets=app_secrets, scaledown_window=2)
 @modal.asgi_app()
 def start_generation():
     from fastapi import FastAPI
