@@ -2,17 +2,9 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createClient } from "@supabase/supabase-js";
 import { Sparkles, Loader2, Video, Send, CheckCircle, AlertCircle, LayoutTemplate, Clock } from "lucide-react";
 
-// Initialize Supabase Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL.startsWith("http") 
-  ? process.env.NEXT_PUBLIC_SUPABASE_URL 
-  : "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL || process.env.NEXT_PUBLIC_MODAL_WEBHOOK_URL || "";
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
@@ -40,29 +32,22 @@ export default function Home() {
     if (!jobId || status === "completed" || status === "failed") return;
 
     const interval = setInterval(async () => {
-      if (!supabaseUrl || supabaseUrl === "https://placeholder.supabase.co") {
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from("videos")
-        .select("status, video_url, error_message")
-        .eq("id", jobId)
-        .single();
-
-      if (error) {
-        console.error("Polling error:", error);
-        return;
-      }
-
-      if (data) {
-        setStatus(data.status);
-        if (data.status === "completed" && data.video_url) {
-          setVideoUrl(data.video_url);
+      try {
+        const cleanWebhookUrl = webhookUrl.replace(/\/$/, "");
+        const res = await fetch(`${cleanWebhookUrl}/status/${jobId}`);
+        if (!res.ok) throw new Error("Failed to fetch status from webhook");
+        const data = await res.json();
+        if (data && !data.error) {
+          setStatus(data.status);
+          if (data.status === "completed" && data.video_storage_url) {
+            setVideoUrl(data.video_storage_url);
+          }
+          if (data.status === "failed") {
+            setErrorMessage(data.error_message || "An unknown error occurred.");
+          }
         }
-        if (data.status === "failed") {
-          setErrorMessage(data.error_message || "An unknown error occurred.");
-        }
+      } catch (err) {
+        console.error("Polling error from webhook:", err);
       }
     }, 3000);
 
