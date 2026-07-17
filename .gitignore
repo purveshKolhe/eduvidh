@@ -6,3 +6,5 @@ __pycache__
 _pycache_
 __pycache__
 __pycache__
+frontend/node_modules
+frontend/.next
