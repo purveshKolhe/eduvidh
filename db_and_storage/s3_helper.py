@@ -22,7 +22,8 @@ def get_s3_client() -> boto3.client:
     # Custom configuration for robust uploads
     config = Config(
         retries={"max_attempts": 3, "mode": "standard"},
-        signature_version="s3v4"
+        signature_version="s3v4",
+        s3={'request_checksum_calculation': 'when_required'}
     )
 
     client_kwargs = {
