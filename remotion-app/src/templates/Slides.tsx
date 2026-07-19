@@ -7,7 +7,10 @@ import { interpolate, useCurrentFrame } from 'remotion';
 // Helper to render icon safely
 const RenderIcon = ({ name, size = 64, color = '#3b82f6' }: { name?: string, size?: number, color?: string }) => {
   if (!name) return null;
-  const IconComponent = (Icons as any)[name];
+  const IconComponent = Icons[name as keyof typeof Icons] as React.ComponentType<{
+    size?: number;
+    color?: string;
+  }> | undefined;
   return IconComponent ? <IconComponent size={size} color={color} /> : null;
 };
 
@@ -33,8 +36,8 @@ export const AgendaSlide: React.FC<{ data: SlideData }> = ({ data }) => {
       <h1 style={{ fontSize: '70px', color: '#312e81', borderBottom: '8px solid #4f46e5', paddingBottom: '20px' }}>{data.title}</h1>
       <ul style={{ listStyleType: 'none', padding: 0, marginTop: '40px' }}>
         {data.content?.map((item, i) => {
-          const itemOpacity = interpolate(frame, [i * 10, i * 10 + 15], [0, 1], { extrapolateRight: 'clamp' });
-          const itemY = interpolate(frame, [i * 10, i * 10 + 15], [30, 0], { extrapolateRight: 'clamp' });
+          const itemOpacity = interpolate(frame, [i * 8, i * 8 + 12], [0, 1], { extrapolateRight: 'clamp' });
+          const itemY = interpolate(frame, [i * 8, i * 8 + 12], [30, 0], { extrapolateRight: 'clamp' });
           return (
             <li key={i} style={{ opacity: itemOpacity, transform: `translateY(${itemY}px)`, fontSize: itemFontSize, color: '#3730a3', marginBottom: marginB, display: 'flex', alignItems: 'center' }}>
               <span style={{ backgroundColor: '#4f46e5', color: 'white', borderRadius: '50%', minWidth: '50px', height: '50px', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', marginRight: '20px', fontSize: '25px', fontWeight: 'bold' }}>{i + 1}</span>
@@ -112,8 +115,8 @@ export const StepByStepProcessSlide: React.FC<{ data: SlideData }> = ({ data }) 
       <h1 style={{ fontSize: '65px', color: '#78350f', textAlign: 'center', marginBottom: '50px' }}>{data.title}</h1>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, justifyContent: 'center' }}>
         {data.content?.map((step, i) => {
-          const itemOpacity = interpolate(frame, [i * 15, i * 15 + 15], [0, 1], { extrapolateRight: 'clamp' });
-          const itemX = interpolate(frame, [i * 15, i * 15 + 15], [-50, 0], { extrapolateRight: 'clamp' });
+          const itemOpacity = interpolate(frame, [i * 12, i * 12 + 12], [0, 1], { extrapolateRight: 'clamp' });
+          const itemX = interpolate(frame, [i * 12, i * 12 + 12], [-50, 0], { extrapolateRight: 'clamp' });
           return (
             <div key={i} style={{ opacity: itemOpacity, transform: `translateX(${itemX}px)`, backgroundColor: 'white', borderRadius: '20px', padding: paddingSize, display: 'flex', alignItems: 'center', boxShadow: '0 8px 20px rgba(217,119,6,0.1)' }}>
               <div style={{ backgroundColor: '#f59e0b', color: 'white', borderRadius: '15px', minWidth: '60px', height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '30px', fontWeight: 'bold', marginRight: '20px' }}>{i + 1}</div>

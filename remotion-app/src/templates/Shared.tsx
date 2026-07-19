@@ -28,8 +28,8 @@ export const SlideWrapper: React.FC<{ children: React.ReactNode, bgColor?: strin
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   
-  // Opacity fade in over 0.5s
-  const opacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
+  // Opacity fade in over 0.5s (12 frames at 24 fps)
+  const opacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
   
   // Scale up with spring
   const scale = spring({

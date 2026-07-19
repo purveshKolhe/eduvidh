@@ -32,7 +32,24 @@ sudo apt-get install -y \
   libpango-1.0-0 \
   libcairo2
 
+echo "=== Installing Google Chrome for the persistent local renderer ==="
+if ! command -v google-chrome >/dev/null 2>&1; then
+  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list >/dev/null
+  sudo apt-get update -y
+  sudo apt-get install -y google-chrome-stable
+fi
+
 echo "=== Installing Python libraries ==="
-pip3 install oracledb boto3 edge-tts groq python-dotenv
+pip3 install aiohttp fastapi modal oracledb boto3 edge-tts groq python-dotenv uvicorn
+
+echo "=== Installing and bundling the persistent Remotion renderer ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REMOTION_DIR="${SCRIPT_DIR}/../remotion-app"
+(
+  cd "${REMOTION_DIR}"
+  npm ci
+  npx remotion bundle src/index.ts --out-dir=bundled --log=error
+)
 
 echo "=== Setup complete! ==="

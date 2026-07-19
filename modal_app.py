@@ -77,14 +77,58 @@ async def generate_audio(text, output_path):
 # --- Render Worker ---
 @app.function(
     image=render_image,
-    cpu=2.0,
+    # One CPU-bound slide renderer per container. Six workers plus two local VM
+    # tabs cover the product's eight-slide maximum without paying for two cores
+    # per remote slide.
+    cpu=1.0,
     memory=1024,
     timeout=600,
-    scaledown_window=2
+    min_containers=0,
+    max_containers=6,
+    scaledown_window=2,
 )
 def render_slide_worker(slide_data, slide_index, est_duration):
+    import socket
     import time
     import resource
+
+    # Modal documents MODAL_TASK_ID as the identity of the container executing
+    # this Function. Hostnames are not a stable or unique container identity.
+    worker_id = os.environ.get("MODAL_TASK_ID", socket.gethostname())
+    if slide_index == -1:
+        # This is intentionally a real renderer warm-up, not a no-op. It starts
+        # the same Remotion/Chromium execution path used by production renders.
+        warm_output = os.path.join(tempfile.gettempdir(), f"warm_{worker_id}_{time.time_ns()}.mp4")
+        warm_cmd = [
+            "npx", "remotion", "render",
+            "bundled", "EducationalVideo", warm_output,
+            "--frames=0-0",
+            "--concurrency=1",
+            "--log=error",
+        ]
+        started_at = time.perf_counter()
+        warm_process = subprocess.run(
+            warm_cmd,
+            cwd="/remotion-app",
+            capture_output=True,
+            text=True,
+        )
+        try:
+            if warm_process.returncode != 0:
+                raise RuntimeError(warm_process.stderr)
+        finally:
+            if os.path.exists(warm_output):
+                os.remove(warm_output)
+        return {
+            "video_bytes": b"",
+            "worker_id": worker_id,
+            "metrics": {
+                "remotion_seconds": time.perf_counter() - started_at,
+                "ffmpeg_seconds": 0.0,
+                "cpu_seconds": 0.0,
+                "max_ram_mb": 0.0,
+            }
+        }
 
     print(f"Worker rendering slide {slide_index} | Est Duration: {est_duration:.1f}s")
     
@@ -102,14 +146,17 @@ def render_slide_worker(slide_data, slide_index, est_duration):
             
         rendered_mp4 = os.path.join(tmpdir, "rendered.mp4")
         
-        # Run Remotion render on PRE-BUNDLED code (first 3s @ 24fps = 71 frames)
+        # Every worker emits only the three-second animation. The VM performs one
+        # final assembly pass, freezing this last frame to the exact measured TTS
+        # duration; this avoids eight separate per-slide muxes.
         cmd = [
             "npx", "remotion", "render", 
             "bundled", "EducationalVideo", 
             rendered_mp4,
             "--props", props_path,
             "--frames=0-71",
-            "--concurrency=2"
+            "--concurrency=1",
+            "--log=error",
         ]
         
         remotion_started_at = time.perf_counter()
@@ -119,55 +166,17 @@ def render_slide_worker(slide_data, slide_index, est_duration):
             print("Remotion Error:", process.stderr)
             raise Exception(f"Remotion failed: {process.stderr}")
 
-        ffmpeg_seconds = 0.0
-
-        def run_ffmpeg(command):
-            nonlocal ffmpeg_seconds
-            started_at = time.perf_counter()
-            result = subprocess.run(command, check=True, capture_output=True)
-            ffmpeg_seconds += time.perf_counter() - started_at
-            return result
-            
-        static_frame = os.path.join(tmpdir, "frame.png")
-        run_ffmpeg([
-            "ffmpeg", "-y", "-sseof", "-0.1", "-i", rendered_mp4,
-            "-update", "1", "-q:v", "2", static_frame
-        ])
-        
-        loop_duration = max(est_duration - 3.0, 1.0)
-        concated_mp4 = os.path.join(tmpdir, "concated.mp4")
-        
-        if loop_duration > 0.5:
-            looped_mp4 = os.path.join(tmpdir, "looped.mp4")
-            run_ffmpeg([
-                "ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-i", static_frame,
-                "-c:v", "libx264", "-preset", "ultrafast",
-                "-t", str(loop_duration), "-pix_fmt", "yuvj420p", "-crf", "35",
-                looped_mp4
-            ])
-            
-            concat_list = os.path.join(tmpdir, "concat_list.txt")
-            with open(concat_list, "w") as f:
-                f.write(f"file '{rendered_mp4}'\n")
-                f.write(f"file '{looped_mp4}'\n")
-            
-            run_ffmpeg([
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
-                "-c", "copy", "-movflags", "+faststart", concated_mp4
-            ])
-        else:
-            shutil.copy(rendered_mp4, concated_mp4)
-            
-        with open(concated_mp4, "rb") as f:
+        with open(rendered_mp4, "rb") as f:
             video_bytes = f.read()
             
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return {
         "video_bytes": video_bytes,
+        "worker_id": worker_id,
         # Timers begin inside the already-started worker, excluding worker cold start.
         "metrics": {
             "remotion_seconds": remotion_seconds,
-            "ffmpeg_seconds": ffmpeg_seconds,
+            "ffmpeg_seconds": 0.0,
             "cpu_seconds": usage.ru_utime + usage.ru_stime,
             "max_ram_mb": usage.ru_maxrss / 1024.0,
         },
@@ -274,45 +283,65 @@ async def orchestrate_job(job_id: str, prompt: str):
         slide_videos_bytes = [result["video_bytes"] for result in worker_results]
         worker_metrics = [result["metrics"] for result in worker_results]
 
-        pipeline_stage = "audio_merge"
-        print("Merging audio and concatenating slides...")
+        pipeline_stage = "single_pass_assembly"
+        print("Assembling the complete video in one FFmpeg pass...")
         merge_ffmpeg_seconds = 0.0
         with tempfile.TemporaryDirectory() as merge_dir:
-            merged_slides = []
-
-            def run_merge_ffmpeg(command):
-                nonlocal merge_ffmpeg_seconds
-                started_at = time.perf_counter()
-                subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                merge_ffmpeg_seconds += time.perf_counter() - started_at
-
+            animation_paths = []
+            audio_paths = []
             for i in range(len(slides)):
-                silent_mp4 = os.path.join(merge_dir, f"silent_{i}.mp4")
-                audio_mp3 = os.path.join(merge_dir, f"audio_{i}.mp3")
-                final_mp4 = os.path.join(merge_dir, f"merged_{i}.mp4")
-                
-                with open(silent_mp4, "wb") as f:
-                    f.write(slide_videos_bytes[i])
-                with open(audio_mp3, "wb") as f:
-                    f.write(audio_bytes_list[i])
+                animation_path = os.path.join(merge_dir, f"animation_{i}.mp4")
+                audio_path = os.path.join(merge_dir, f"audio_{i}.mp3")
+                with open(animation_path, "wb") as video_file:
+                    video_file.write(slide_videos_bytes[i])
+                with open(audio_path, "wb") as audio_file:
+                    audio_file.write(audio_bytes_list[i])
+                animation_paths.append(animation_path)
+                audio_paths.append(audio_path)
 
-                run_merge_ffmpeg([
-                    "ffmpeg", "-y", "-i", silent_mp4, "-i", audio_mp3,
-                    "-map", "0:v:0", "-map", "1:a:0",
-                    "-c:v", "copy", "-c:a", "aac", "-threads", "1", "-shortest", final_mp4
-                ])
-                merged_slides.append(final_mp4)
+            audio_durations = []
+            for audio_path in audio_paths:
+                probe = subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", audio_path],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                audio_durations.append(max(3.0, float(probe.stdout.strip())))
 
-            list_file_path = os.path.join(merge_dir, "list.txt")
-            with open(list_file_path, "w") as list_file:
-                for path in merged_slides:
-                    list_file.write(f"file '{path}'\n")
+            command = ["ffmpeg", "-y"]
+            for animation_path in animation_paths:
+                command.extend(["-i", animation_path])
+            for audio_path in audio_paths:
+                command.extend(["-i", audio_path])
+
+            filters = []
+            concat_inputs = []
+            slide_count = len(slides)
+            for i, duration in enumerate(audio_durations):
+                filters.append(
+                    f"[{i}:v]tpad=stop_mode=clone:stop_duration={max(0.0, duration - 3.0):.3f},setpts=PTS-STARTPTS[v{i}]"
+                )
+                filters.append(
+                    f"[{slide_count + i}:a]apad,atrim=duration={duration:.3f},asetpts=PTS-STARTPTS[a{i}]"
+                )
+                concat_inputs.extend([f"[v{i}]", f"[a{i}]"])
+            filters.append("".join(concat_inputs) + f"concat=n={slide_count}:v=1:a=1[vout][aout]")
 
             final_output = os.path.join(merge_dir, "final_output.mp4")
-            run_merge_ffmpeg([
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file_path,
-                "-c", "copy", final_output
-            ])
+            started_at = time.perf_counter()
+            subprocess.run(
+                command + [
+                    "-filter_complex", ";".join(filters),
+                    "-map", "[vout]", "-map", "[aout]",
+                    "-r", "24", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "32",
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", final_output,
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            merge_ffmpeg_seconds = time.perf_counter() - started_at
             duration_probe = subprocess.run(
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", final_output],
                 check=True,
@@ -376,49 +405,6 @@ async def orchestrate_job(job_id: str, prompt: str):
                 print(f"Could not persist failure for {job_id}:\n{traceback.format_exc()}")
 
 
-# --- Webhook ---
-@app.function(image=orchestrator_image, secrets=app_secrets, scaledown_window=2)
-@modal.asgi_app()
-def start_generation():
-    from fastapi import FastAPI
-    from fastapi.middleware.cors import CORSMiddleware
-
-    web_app = FastAPI()
-
-    web_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    @web_app.post("/")
-    async def start_generation_endpoint(request: dict):
-        from db_and_storage.adapter import get_adapter
-        prompt = request.get("prompt")
-        if not prompt:
-            return {"error": "Missing prompt"}
-            
-        adapter = get_adapter()
-        # Create initial record in db
-        job_id = adapter.create_video(prompt)
-        
-        await orchestrate_job.spawn.aio(job_id, prompt)
-        
-        return {"job_id": job_id, "status": "pending"}
-
-    # Dynamic status endpoint to effortlessly support frontend polling on Oracle / Custom DBs
-    @web_app.get("/status/{job_id}")
-    async def get_generation_status(job_id: str):
-        from db_and_storage.adapter import get_adapter
-        adapter = get_adapter()
-        try:
-            video_data = adapter.get_video(job_id)
-            if not video_data:
-                return {"error": "Job not found"}
-            return video_data
-        except Exception as e:
-            return {"error": str(e)}
-
-    return web_app
+# --- Webhook (Retired in favor of Azure VM control plane) ---
+# The start_generation endpoint has been retired to avoid competing orchestrators.
+# The Azure VM now serves the control plane.

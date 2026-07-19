@@ -1,429 +1,508 @@
-import os
-import sys
-import json
-import time
-import uuid
 import asyncio
-import tempfile
-import shutil
-import resource
-import subprocess
-import pathlib
+import json
 import logging
-from typing import Any, Dict, List
+import os
+import pathlib
+import resource
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+import aiohttp
+import modal
+import uvicorn
 from dotenv import load_dotenv
+from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("azure_vm_pipeline")
-
-# Add parent directory to path so we can import db_and_storage modules
 sys.path.append(str(pathlib.Path(__file__).parent.parent.absolute()))
 
 from db_and_storage.adapter import get_adapter
 
-# Load environment variables from the parent directory's .env file
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger("azure_vm_pipeline")
+
 dotenv_path = pathlib.Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
-# Enforce OCI / S3 Checksum environment configurations
 os.environ["AWS_REQUEST_CHECKSUM_CALCULATION"] = "WHEN_REQUIRED"
 os.environ["AWS_RESPONSE_CHECKSUM_VALIDATION"] = "WHEN_REQUIRED"
 
-REMOTION_APP_DIR = pathlib.Path(__file__).parent.parent / "remotion-app"
-BUNDLED_JS = REMOTION_APP_DIR / "bundled"
+# The public product contract is at most eight slides: two local and six remote.
+VM_CAPACITY = 2
+MAX_SLIDES = 8
+MAX_MODAL_WORKERS = MAX_SLIDES - VM_CAPACITY
+TARGET_FPS = 24
+ANIMATION_DURATION_SECONDS = 3.0
+MODAL_SCALEDOWN_WINDOW_SECONDS = 2
+LOCAL_RENDERER_URL = os.getenv("LOCAL_RENDERER_URL", "http://127.0.0.1:5000")
+MODAL_APP_NAME = os.getenv("MODAL_APP_NAME", "edu-video-generator")
+MODAL_RENDER_FUNCTION = os.getenv("MODAL_RENDER_FUNCTION", "render_slide_worker")
+FEATURE_FLAG_HYBRID = os.getenv("FEATURE_FLAG_HYBRID", "true").lower() == "true"
 
-# ============================================================================
-# Local Dependency Setup
-# ============================================================================
-def setup_local_environment():
-    """Ensure npm dependencies are installed and pre-bundle the Remotion project."""
-    logger.info("Checking local environment dependencies...")
-    
-    # 1. Check Node.js
-    if not shutil.which("node") or not shutil.which("npm"):
-        raise RuntimeError("Node.js and npm must be installed on the system to run Remotion rendering.")
-        
-    # 2. Check FFmpeg/FFprobe
-    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-        raise RuntimeError("ffmpeg and ffprobe must be installed on the system.")
 
-    # 3. Install npm packages if node_modules is missing
-    node_modules = REMOTION_APP_DIR / "node_modules"
-    if not node_modules.exists():
-        logger.info("node_modules not found. Running 'npm install' inside remotion-app...")
-        subprocess.run(["npm", "install", "--legacy-peer-deps"], cwd=str(REMOTION_APP_DIR), check=True)
+# Modal autoscaler settings are shared by every job served by this VM process.
+# Track reservations so one completed job cannot scale down capacity still needed by another.
+_modal_pool_lock = asyncio.Lock()
+_modal_reservations: Dict[str, int] = {}
 
-    # 4. Expect pre-bundled folder from local host (to prevent OOM on low-resource VM)
-    if not BUNDLED_JS.exists():
-        raise RuntimeError("Pre-compiled Remotion 'bundled' directory is missing. Please run npx remotion bundle on your host and sync it.")
 
-# ============================================================================
-# TTS Generation
-# ============================================================================
-async def generate_audio(text: str, output_path: str):
+def _render_function() -> modal.Function:
+    return modal.Function.from_name(MODAL_APP_NAME, MODAL_RENDER_FUNCTION)
+
+
+async def _apply_modal_pool_target() -> int:
+    """Apply the total active reservation, capped by the product's six-worker budget."""
+    target = min(MAX_MODAL_WORKERS, sum(_modal_reservations.values()))
+    render_function = _render_function()
+    await asyncio.to_thread(
+        render_function.update_autoscaler,
+        min_containers=target,
+        max_containers=MAX_MODAL_WORKERS,
+        buffer_containers=0,
+        scaledown_window=MODAL_SCALEDOWN_WINDOW_SECONDS,
+    )
+    logger.info("Modal render pool target is now %s container(s)", target)
+    return target
+
+
+async def set_modal_reservation(job_id: str, container_count: int) -> int:
+    """Reserve remote-worker capacity for one job and update the shared pool safely."""
+    if not 0 <= container_count <= MAX_MODAL_WORKERS:
+        raise ValueError(f"invalid Modal worker reservation: {container_count}")
+
+    async with _modal_pool_lock:
+        if container_count:
+            _modal_reservations[job_id] = container_count
+        else:
+            _modal_reservations.pop(job_id, None)
+        return await _apply_modal_pool_target()
+
+
+async def generate_audio(text: str, output_path: str) -> None:
     import edge_tts
+
     communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
     await communicate.save(output_path)
 
-# ============================================================================
-# Local Render Worker (runs slide render + loops via subprocess)
-# ============================================================================
-async def render_slide_local(slide_data: dict, slide_index: int, est_duration: float, temp_dir: str) -> Dict[str, Any]:
-    """
-    Renders a single slide locally by spawning npx remotion and ffmpeg as async subprocesses.
-    Returns metrics and the output file path.
-    """
-    logger.info(f"Local Worker: Rendering slide {slide_index} | Est Duration: {est_duration:.1f}s")
-    
-    slide_data['durationInSeconds'] = est_duration
-    props = {
-        "slides": [slide_data],
-        "audioUrls": []
-    }
-    
-    # Paths for this specific worker run
-    slide_temp_dir = os.path.join(temp_dir, f"slide_{slide_index}")
-    os.makedirs(slide_temp_dir, exist_ok=True)
-    
-    props_path = os.path.join(slide_temp_dir, "props.json")
-    with open(props_path, "w") as f:
-        json.dump(props, f)
-        
-    rendered_mp4 = os.path.join(slide_temp_dir, "rendered.mp4")
-    concated_mp4 = os.path.join(slide_temp_dir, "concated.mp4")
-    static_frame = os.path.join(slide_temp_dir, "frame.png")
-    
-    # 1. Run Remotion render
-    cmd = [
-        "npx", "remotion", "render", 
-        "bundled", "EducationalVideo", 
-        rendered_mp4,
-        "--props", props_path,
-        "--frames=0-71",
-        "--concurrency=2"
-    ]
-    
-    remotion_start = time.perf_counter()
-    remotion_proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        cwd=str(REMOTION_APP_DIR),
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.PIPE
-    )
-    _, stderr = await remotion_proc.communicate()
-    remotion_seconds = time.perf_counter() - remotion_start
-    
-    if remotion_proc.returncode != 0:
-        raise RuntimeError(f"Remotion failed for slide {slide_index}: {stderr.decode()}")
-        
-    # 2. Extract static frame and loop it via FFmpeg
-    ffmpeg_seconds = 0.0
-    
-    async def run_ffmpeg(args):
-        nonlocal ffmpeg_seconds
-        start = time.perf_counter()
-        proc = await asyncio.create_subprocess_exec(
-            "ffmpeg", *args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await proc.communicate()
-        ffmpeg_seconds += time.perf_counter() - start
-        if proc.returncode != 0:
-            logger.error(f"FFmpeg failed with args: {' '.join(args)}")
-            logger.error(f"FFmpeg stderr: {stderr.decode()}")
-            raise RuntimeError(f"FFmpeg failed: {stderr.decode()}")
 
-    # Extract last frame safely (frame index 71 of the 72 rendered frames)
-    await run_ffmpeg([
-        "-y", "-i", rendered_mp4,
-        "-vf", "select='gte(n,71)'",
-        "-vframes", "1",
-        static_frame
-    ])
-
-    # Probe framerate and pixel format of rendered_mp4 to ensure exact compatibility during concat
-    probe_cmd = [
-        "ffprobe", "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=r_frame_rate,pix_fmt",
-        "-of", "json",
-        rendered_mp4
-    ]
-    probe_proc = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
-    probe_data = json.loads(probe_proc.stdout)
-    stream = probe_data["streams"][0]
-
-    fps_ratio = stream["r_frame_rate"]
-    if "/" in fps_ratio:
-        num, den = map(int, fps_ratio.split("/"))
-        fps = str(round(num / den)) if den != 0 else "30"
-    else:
-        fps = fps_ratio
-    pix_fmt = stream["pix_fmt"]
-    loop_duration = max(est_duration - 3.0, 1.0)
-    if loop_duration > 0.5:
-        looped_mp4 = os.path.join(slide_temp_dir, "looped.mp4")
-        # Match framerate and pixel format exactly with the source clip
-        await run_ffmpeg([
-            "-y", "-loop", "1", "-framerate", fps, "-i", static_frame,
-            "-c:v", "libx264", "-preset", "ultrafast",
-            "-t", str(loop_duration), "-pix_fmt", pix_fmt, "-crf", "35",
-            looped_mp4
-        ])
-        
-        # Use FFmpeg filter_complex concat to re-encode and merge the clips.
-        # This completely avoids silent drops from timebase/metadata mismatches.
-        await run_ffmpeg([
-            "-y",
-            "-i", rendered_mp4,
-            "-i", looped_mp4,
-            "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0[outv]",
-            "-map", "[outv]",
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "32", "-movflags", "+faststart",
-            concated_mp4
-        ])
-    else:
-        shutil.copy(rendered_mp4, concated_mp4)
-        
+async def generate_audio_timed(text: str, slide_index: int, output_path: str) -> Dict[str, Any]:
+    started_at = time.perf_counter()
+    await generate_audio(text, output_path)
     return {
-        "output_path": concated_mp4,
-        "metrics": {
-            "slide_index": slide_index,
-            "remotion_seconds": round(remotion_seconds, 3),
-            "ffmpeg_seconds": round(ffmpeg_seconds, 3),
-            "total_seconds": round(remotion_seconds + ffmpeg_seconds, 3)
-        }
+        "slide_index": slide_index,
+        "seconds": round(time.perf_counter() - started_at, 3),
     }
 
-# ============================================================================
-# Main Orchestrator Local Run
-# ============================================================================
-async def run_local_pipeline(prompt: str):
-    logger.info("Initializing Azure VM Video Rendering Pipeline...")
-    setup_local_environment()
-    
-    adapter = get_adapter()
-    
-    # Record job submission time and create DB record
-    job_start_time = time.time()
-    job_id = adapter.create_video(prompt)
-    logger.info(f"Created video job with ID: {job_id}")
-    
-    # 1. Cold Start Time Calculation (instant local launch vs serverless queue delays)
-    orchestrator_start_time = time.time()
-    cold_start_time = max(orchestrator_start_time - job_start_time, 0.0)
-    
-    pipeline_stage = "llm_script_generation"
-    from groq import Groq
-    groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    
+
+async def render_slide_local_service(
+    slide_data: dict, slide_index: int, output_path: str
+) -> Dict[str, Any]:
+    """Render the three-second animated clip on one of two persistent local tabs."""
+    started_at = time.perf_counter()
+    payload = {
+        "slide_data": slide_data,
+        "slide_index": slide_index,
+        "output_path": output_path,
+    }
+    timeout = aiohttp.ClientTimeout(total=180)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(f"{LOCAL_RENDERER_URL}/render", json=payload) as response:
+            if response.status != 200:
+                raise RuntimeError(
+                    f"local renderer failed for slide {slide_index}: {await response.text()}"
+                )
+            result = await response.json()
+
+    metrics = dict(result.get("metrics", {}))
+    metrics.update(
+        {
+            "slide_index": slide_index,
+            "request_seconds": round(time.perf_counter() - started_at, 3),
+        }
+    )
+    return {"output_path": result["output_path"], "metrics": metrics}
+
+
+async def warm_modal_pool(job_id: str) -> Dict[str, Any]:
+    """
+    Start and verify six *actual* Modal render workers. A warm request performs a
+    one-frame Remotion render in the worker, so readiness means more than merely
+    importing Python or returning from a dummy function.
+    """
+    started_at = time.perf_counter()
+    await set_modal_reservation(job_id, MAX_MODAL_WORKERS)
+    render_function = _render_function()
+
+    # A sequence of `spawn()` calls can be greedily routed to the first worker
+    # that becomes ready. `map()` submits one batch of six concurrent inputs,
+    # which is the Modal API intended for parallel batch execution. Together
+    # with the six-container floor above, this forces the pool to materialize.
+    responses = [
+        response
+        async for response in render_function.map.aio(
+            [None] * MAX_MODAL_WORKERS,
+            [-1] * MAX_MODAL_WORKERS,
+            [0.0] * MAX_MODAL_WORKERS,
+            order_outputs=False,
+        )
+    ]
+    worker_ids = {
+        str(response.get("worker_id", ""))
+        for response in responses
+        if response.get("worker_id")
+    }
+    if len(worker_ids) != MAX_MODAL_WORKERS:
+        raise RuntimeError(
+            "Modal warm-up did not reach six distinct render workers "
+            f"(received {len(worker_ids)})"
+        )
+
+    return {
+        "requested_count": MAX_MODAL_WORKERS,
+        "ready_count": len(worker_ids),
+        "worker_ids": sorted(worker_ids),
+        "seconds": round(time.perf_counter() - started_at, 3),
+    }
+
+
+async def run_ffmpeg(args: List[str]) -> None:
+    process = await asyncio.create_subprocess_exec(
+        "ffmpeg",
+        *args,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    _, stderr = await process.communicate()
+    if process.returncode != 0:
+        raise RuntimeError(f"FFmpeg failed: {stderr.decode(errors='replace')}")
+
+
+async def probe_duration(path: str) -> float:
+    process = await asyncio.create_subprocess_exec(
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        path,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    if process.returncode != 0:
+        raise RuntimeError(f"ffprobe failed: {stderr.decode(errors='replace')}")
+    return float(stdout.decode().strip())
+
+
+async def assemble_video_once(
+    animation_paths: List[str], audio_paths: List[str], final_output: str
+) -> Tuple[List[float], float]:
+    """
+    Freeze each three-second animation at its last frame for the real narration
+    length, then concatenate all audio/video pairs in one FFmpeg invocation.
+    """
+    if len(animation_paths) != len(audio_paths) or not animation_paths:
+        raise ValueError("animation and audio inputs must be non-empty and equally sized")
+
+    audio_durations = await asyncio.gather(*(probe_duration(path) for path in audio_paths))
+    slide_durations = [max(ANIMATION_DURATION_SECONDS, duration) for duration in audio_durations]
+    slide_count = len(animation_paths)
+
+    command: List[str] = ["-y"]
+    for path in animation_paths:
+        command.extend(["-i", path])
+    for path in audio_paths:
+        command.extend(["-i", path])
+
+    filters: List[str] = []
+    concat_inputs: List[str] = []
+    for index, duration in enumerate(slide_durations):
+        freeze_seconds = max(0.0, duration - ANIMATION_DURATION_SECONDS)
+        filters.append(
+            f"[{index}:v]tpad=stop_mode=clone:stop_duration={freeze_seconds:.3f},"
+            f"setpts=PTS-STARTPTS[v{index}]"
+        )
+        audio_input_index = slide_count + index
+        filters.append(
+            f"[{audio_input_index}:a]apad,atrim=duration={duration:.3f},"
+            f"asetpts=PTS-STARTPTS[a{index}]"
+        )
+        concat_inputs.extend([f"[v{index}]", f"[a{index}]"])
+
+    filters.append(
+        "".join(concat_inputs) + f"concat=n={slide_count}:v=1:a=1[vout][aout]"
+    )
+    command.extend(
+        [
+            "-filter_complex",
+            ";".join(filters),
+            "-map",
+            "[vout]",
+            "-map",
+            "[aout]",
+            "-r",
+            str(TARGET_FPS),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "32",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-movflags",
+            "+faststart",
+            final_output,
+        ]
+    )
+
+    started_at = time.perf_counter()
+    await run_ffmpeg(command)
+    return slide_durations, time.perf_counter() - started_at
+
+
+async def generate_script(prompt: str) -> List[dict]:
+    from groq import AsyncGroq
+
     system_prompt = """
-    You are an educational video script writer. Based on the user's topic, generate a JSON array of exactly 6 slides.
+    You are an educational video script writer. Based on the user's topic, generate a JSON array of between 5 and 8 slides.
     Use the following types: TitleSlide, AgendaSlide, SectionDividerSlide, ConceptExplanationSlide, ComparisonSlide, StepByStepProcessSlide, DataStatisticsSlide, ExampleCaseStudySlide, SummarySlide, QuestionDiscussionSlide.
     Each slide must have: 'type', 'title', 'content' (array of strings, or exactly 4 strings for ComparisonSlide), 'narration' (text to be spoken), and optionally 'latex' (a single string containing the math expression WITHOUT any $ delimiters) and 'icon' (lucide-react icon name like 'Brain').
     Respond ONLY with raw JSON, no markdown blocks.
     """
-    
-    logger.info("Calling Groq API for script generation...")
-    chat_completion = groq_client.chat.completions.create(
+    client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+    completion = await client.chat.completions.create(
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ],
         model="openai/gpt-oss-20b",
         temperature=0.7,
         max_tokens=4096,
     )
-    
+    raw_json = completion.choices[0].message.content.strip()
+    if raw_json.startswith("```json"):
+        raw_json = raw_json[7:-3]
+    slides = json.loads(raw_json)
+    if not isinstance(slides, list) or not 5 <= len(slides) <= MAX_SLIDES:
+        raise ValueError(f"LLM output must contain 5 to {MAX_SLIDES} slides")
+    if not all(isinstance(slide, dict) for slide in slides):
+        raise ValueError("every slide must be a JSON object")
+    return slides
+
+
+async def orchestrate_hybrid_job(job_id: str, prompt: str) -> None:
+    """Run one hybrid job with six verified remote workers and two local tabs."""
+    adapter = get_adapter()
+    orchestrator_started_at = time.perf_counter()
+    temp_dir: Optional[str] = None
+    warm_task: Optional[asyncio.Task] = None
+    request_to_orchestrator = 0.0
+
     try:
-        raw_json = chat_completion.choices[0].message.content.strip()
-        if raw_json.startswith("```json"):
-            raw_json = raw_json[7:-3]
-        slides = json.loads(raw_json)
-        if not isinstance(slides, list) or len(slides) != 6:
-            raise ValueError("LLM output must be a JSON array of exactly six slides")
-    except Exception as e:
-        adapter.update_video(video_id=job_id, status="failed", error_message=f"LLM script invalid: {str(e)}")
-        raise e
+        video_data = adapter.get_video(job_id)
+        created_at = video_data.get("created_at") if video_data else None
+        if created_at:
+            created_at_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            request_to_orchestrator = max(time.time() - created_at_dt.timestamp(), 0.0)
 
-    pipeline_stage = "script_persistence"
-    for slide in slides:
-        text = slide.get("narration", slide.get("title", ""))
-        slide["durationInSeconds"] = max(len(text) * 0.07 + 2.0, 5.0)
-    adapter.update_video(video_id=job_id, status="script_generated", slides_data=slides)
+        if not FEATURE_FLAG_HYBRID:
+            fallback = modal.Function.from_name(MODAL_APP_NAME, "orchestrate_job")
+            await fallback.spawn.aio(job_id, prompt)
+            return
 
-    # 2. Rendering Phase (Concurrent execution using local subprocesses)
-    pipeline_stage = "rendering"
-    rendering_start_time = time.time()
-    
-    with tempfile.TemporaryDirectory() as temp_dir:
-        logger.info("Spawning local Remotion renderers and TTS generators in parallel...")
-        
-        # Dispatch Slide rendering tasks with controlled concurrency to prevent VM OOM crashes
-        concurrency_limit = int(os.getenv("VM_RENDER_CONCURRENCY", "2"))
-        logger.info(f"Setting local render concurrency limit to: {concurrency_limit}")
-        sem = asyncio.Semaphore(concurrency_limit)
+        # This task gets CPU time as soon as generate_script awaits Groq. The old
+        # synchronous Groq request prevented the warm-up from starting at all.
+        warm_task = asyncio.create_task(warm_modal_pool(job_id))
 
-        async def render_with_sem(slide_data, idx, duration, path):
-            async with sem:
-                return await render_slide_local(slide_data, idx, duration, path)
+        script_started_at = time.perf_counter()
+        slides = await generate_script(prompt)
+        script_seconds = time.perf_counter() - script_started_at
 
-        render_tasks = []
-        for i, slide in enumerate(slides):
-            render_tasks.append(
-                render_with_sem(slide, i, slide["durationInSeconds"], temp_dir)
-            )
-            
-        # Dispatch TTS audio generation tasks
-        tts_dir = os.path.join(temp_dir, "tts")
-        os.makedirs(tts_dir, exist_ok=True)
-        tts_tasks = []
-        audio_paths = []
-        for i, slide in enumerate(slides):
+        for slide in slides:
             text = slide.get("narration", slide.get("title", ""))
-            audio_path = os.path.join(tts_dir, f"audio_{i}.mp3")
-            audio_paths.append(audio_path)
-            tts_tasks.append(generate_audio(text, audio_path))
-            
-        # Run everything
-        logger.info("Executing render & TTS loops...")
-        render_results, _ = await asyncio.gather(
-            asyncio.gather(*render_tasks),
-            asyncio.gather(*tts_tasks)
-        )
-        
-        # Read the generated audios
-        audio_bytes_list = []
-        for path in audio_paths:
-            with open(path, "rb") as audio_file:
-                audio_bytes_list.append(audio_file.read())
-                
-        # 3. Audio/Video Merging (FFmpeg concatenation)
-        pipeline_stage = "audio_merge"
-        logger.info("Merging audio tracks and concatenating video slides...")
-        
-        merge_ffmpeg_seconds = 0.0
-        
-        async def run_merge_ffmpeg(args):
-            nonlocal merge_ffmpeg_seconds
-            start = time.perf_counter()
-            proc = await asyncio.create_subprocess_exec(
-                "ffmpeg", *args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            # Only a provisional value for UI/legacy consumers. Final media uses
+            # probed TTS duration, never this character-count estimate.
+            slide["durationInSeconds"] = max(len(text) * 0.07 + 2.0, ANIMATION_DURATION_SECONDS)
+
+        adapter.update_video(video_id=job_id, status="script_generated", slides_data=slides)
+
+        # Do not dispatch a render until six actual workers have completed their
+        # renderer warm-up. If this is slower than Groq, this is the only wait.
+        warm_metrics = await warm_task
+
+        total_slides = len(slides)
+        local_count = min(total_slides, VM_CAPACITY)
+        remote_count = total_slides - local_count
+        await set_modal_reservation(job_id, remote_count)
+
+        adapter.update_video(video_id=job_id, status="rendering", slides_data=slides)
+        temp_dir = tempfile.mkdtemp(prefix=f"eduvidh_{job_id}_")
+        animation_paths = [os.path.join(temp_dir, f"animation_{index}.mp4") for index in range(total_slides)]
+        audio_paths = [os.path.join(temp_dir, f"audio_{index}.mp3") for index in range(total_slides)]
+
+        modal_worker = _render_function()
+
+        async def render_remote(slide: dict, index: int, output_path: str) -> Dict[str, Any]:
+            started_at = time.perf_counter()
+            result = await modal_worker.remote.aio(slide, index, ANIMATION_DURATION_SECONDS)
+            await asyncio.to_thread(pathlib.Path(output_path).write_bytes, result["video_bytes"])
+            metrics = dict(result.get("metrics", {}))
+            metrics.update(
+                {
+                    "slide_index": index,
+                    "request_seconds": round(time.perf_counter() - started_at, 3),
+                }
             )
-            stdout, stderr = await proc.communicate()
-            merge_ffmpeg_seconds += time.perf_counter() - start
-            if proc.returncode != 0:
-                logger.error(f"Merge FFmpeg failed: {' '.join(args)}")
-                logger.error(f"Merge FFmpeg stderr: {stderr.decode()}")
-                raise RuntimeError(f"Merge FFmpeg failed: {stderr.decode()}")
+            return {"output_path": output_path, "metrics": metrics}
 
-        merged_slides = []
-        for i in range(len(slides)):
-            slide_video_path = render_results[i]["output_path"]
-            audio_mp3 = os.path.join(temp_dir, f"audio_{i}.mp3")
-            final_mp4 = os.path.join(temp_dir, f"merged_{i}.mp4")
-            
-            with open(audio_mp3, "wb") as f:
-                f.write(audio_bytes_list[i])
-                
-            await run_merge_ffmpeg([
-                "-y", "-i", slide_video_path, "-i", audio_mp3,
-                "-map", "0:v:0", "-map", "1:a:0",
-                "-c:v", "copy", "-c:a", "aac", "-threads", "1", "-shortest", final_mp4
-            ])
-            merged_slides.append(final_mp4)
+        local_jobs = [
+            render_slide_local_service(slides[index], index, animation_paths[index])
+            for index in range(local_count)
+        ]
+        remote_jobs = [
+            render_remote(slides[index], index, animation_paths[index])
+            for index in range(local_count, total_slides)
+        ]
+        tts_jobs = [
+            generate_audio_timed(
+                slides[index].get("narration", slides[index].get("title", "")),
+                index,
+                audio_paths[index],
+            )
+            for index in range(total_slides)
+        ]
 
-        list_file_path = os.path.join(temp_dir, "list.txt")
-        with open(list_file_path, "w") as list_file:
-            for path in merged_slides:
-                list_file.write(f"file '{path}'\n")
-                
+        parallel_started_at = time.perf_counter()
+        local_render_task = asyncio.ensure_future(asyncio.gather(*local_jobs))
+        remote_render_task = asyncio.ensure_future(asyncio.gather(*remote_jobs))
+        tts_task = asyncio.ensure_future(asyncio.gather(*tts_jobs))
+
+        # Release Modal capacity as soon as the video clips are rendered. TTS,
+        # assembly, and upload do not need those containers, so holding them
+        # through those stages would spend credits for no latency benefit.
+        local_results, remote_results = await asyncio.gather(local_render_task, remote_render_task)
+        await set_modal_reservation(job_id, 0)
+        tts_metrics = await tts_task
+        parallel_seconds = time.perf_counter() - parallel_started_at
+
         final_output = os.path.join(temp_dir, "final_output.mp4")
-        await run_merge_ffmpeg([
-            "-y", "-f", "concat", "-safe", "0", "-i", list_file_path,
-            "-c", "copy", final_output
-        ])
-        
-        # Calculate video duration via ffprobe
-        duration_probe = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", final_output],
-            check=True,
-            capture_output=True,
-            text=True,
+        slide_durations, assembly_seconds = await assemble_video_once(
+            animation_paths, audio_paths, final_output
         )
-        video_length = float(duration_probe.stdout.strip())
-        
-        # Record wall-clock render duration
-        rendering_time = time.time() - rendering_start_time
-        
-        # 4. Upload final video to object storage
-        pipeline_stage = "video_upload"
-        logger.info("Uploading final video to OCI Object Storage...")
-        final_url = adapter.upload_video(final_output, job_id)
-        
-    # ============================================================================
-    # Resource Usage Profiling
-    # ============================================================================
-    # Measure resources of the VM environment
-    parent_usage = resource.getrusage(resource.RUSAGE_SELF)
-    children_usage = resource.getrusage(resource.RUSAGE_CHILDREN)
-    
-    # Calculate child process metric sums
-    worker_metrics = [res["metrics"] for res in render_results]
-    remotion_seconds = sum(m["remotion_seconds"] for m in worker_metrics)
-    worker_ffmpeg_seconds = sum(m["ffmpeg_seconds"] for m in worker_metrics)
-    
-    resources_used = {
-        "environment": "Azure VM (Local Subprocesses)",
-        "orchestrator_parent": {
-            "cpu_seconds": round(parent_usage.ru_utime + parent_usage.ru_stime, 3),
-            "max_ram_mb": round(parent_usage.ru_maxrss / 1024.0, 2),  # ru_maxrss is KB on Linux
-            "cpu_count": os.cpu_count() or 1
-        },
-        "subprocess_children": {
-            "cpu_seconds": round(children_usage.ru_utime + children_usage.ru_stime, 3),
-            "max_ram_mb": round(children_usage.ru_maxrss / 1024.0, 2),
-            "remotion_compute_seconds": round(remotion_seconds, 3),
-            "worker_ffmpeg_seconds": round(worker_ffmpeg_seconds, 3),
-            "merge_ffmpeg_seconds": round(merge_ffmpeg_seconds, 3)
-        },
-        "rendering_breakdown_seconds": {
-            "total_compute_seconds": round(remotion_seconds + worker_ffmpeg_seconds + merge_ffmpeg_seconds, 3),
-            "wall_clock_rendering_seconds": round(rendering_time, 3)
-        },
-        "render_workers_detail": worker_metrics
-    }
-    
-    # Finalize state, writing metrics to DB
-    pipeline_stage = "completion_persistence"
-    adapter.update_video(
-        video_id=job_id,
-        status="completed",
-        video_storage_url=final_url,
-        cold_start_time=round(cold_start_time, 3),
-        rendering_time=round(rendering_time, 3),
-        video_length=round(video_length, 3),
-        resources_used=resources_used
-    )
-    
-    logger.info(f"Local job {job_id} completed successfully!")
-    logger.info(f"Final Video URL: {final_url}")
-    logger.info(f"Total Wall-Clock Rendering Duration: {rendering_time:.2f}s")
-    return job_id
+        video_length = await probe_duration(final_output)
+        upload_started_at = time.perf_counter()
+        final_url = await asyncio.to_thread(adapter.upload_video, final_output, job_id)
+        upload_seconds = time.perf_counter() - upload_started_at
 
-# ============================================================================
-# CLI Entrypoint
-# ============================================================================
+        local_metrics = [result["metrics"] for result in local_results]
+        remote_metrics = [result["metrics"] for result in remote_results]
+        local_render_seconds = max((metric["request_seconds"] for metric in local_metrics), default=0.0)
+        remote_render_seconds = max((metric["request_seconds"] for metric in remote_metrics), default=0.0)
+        tts_seconds = max((metric["seconds"] for metric in tts_metrics), default=0.0)
+        parent_usage = resource.getrusage(resource.RUSAGE_SELF)
+
+        resources_used = {
+            "environment": "Azure VM + Modal Hybrid Orchestrator",
+            "allocation_counts": {
+                "total_slides": total_slides,
+                "local_vm_count": local_count,
+                "remote_modal_count": remote_count,
+            },
+            "modal_warm_pool": warm_metrics,
+            "timings_wall_clock_seconds": {
+                "request_to_orchestrator": round(request_to_orchestrator, 3),
+                "script_generation": round(script_seconds, 3),
+                "local_render": round(local_render_seconds, 3),
+                "remote_render": round(remote_render_seconds, 3),
+                "tts_generation": round(tts_seconds, 3),
+                "parallel_render_and_tts": round(parallel_seconds, 3),
+                "single_pass_assembly": round(assembly_seconds, 3),
+                "upload": round(upload_seconds, 3),
+                "total_wall_clock": round(time.perf_counter() - orchestrator_started_at, 3),
+            },
+            "slide_durations_seconds": [round(duration, 3) for duration in slide_durations],
+            "local_renderer": {
+                "peak_orchestrator_rss_mb": round(parent_usage.ru_maxrss / 1024.0, 2),
+                "detail": local_metrics,
+            },
+            "modal_workers": {"detail": remote_metrics},
+            "tts": {"detail": tts_metrics},
+        }
+
+        adapter.update_video(
+            video_id=job_id,
+            status="completed",
+            video_storage_url=final_url,
+            cold_start_time=round(request_to_orchestrator, 3),
+            rendering_time=round(parallel_seconds, 3),
+            video_length=round(video_length, 3),
+            resources_used=resources_used,
+        )
+        logger.info("Hybrid job %s completed in %.2fs", job_id, time.perf_counter() - orchestrator_started_at)
+    except Exception as error:
+        logger.exception("Hybrid job %s failed", job_id)
+        adapter.update_video(
+            video_id=job_id,
+            status="failed",
+            error_message=str(error),
+            cold_start_time=round(request_to_orchestrator, 3),
+            resources_used={"failed": True, "error": str(error)},
+        )
+    finally:
+        if warm_task and not warm_task.done():
+            warm_task.cancel()
+            await asyncio.gather(warm_task, return_exceptions=True)
+        if temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        try:
+            await set_modal_reservation(job_id, 0)
+        except Exception:
+            logger.exception("Could not release Modal reservation for job %s", job_id)
+
+
+app = FastAPI(title="Azure VM Orchestration Service")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin for origin in os.getenv("CORS_ALLOW_ORIGINS", "*").split(",") if origin],
+    allow_credentials=False,
+    allow_methods=["POST", "GET"],
+    allow_headers=["Content-Type"],
+)
+
+
+@app.post("/")
+async def start_generation_endpoint(payload: dict, background_tasks: BackgroundTasks) -> Dict[str, str]:
+    prompt = str(payload.get("prompt", "")).strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Missing prompt")
+    job_id = get_adapter().create_video(prompt)
+    background_tasks.add_task(orchestrate_hybrid_job, job_id, prompt)
+    return {"job_id": job_id, "status": "pending"}
+
+
+@app.get("/status/{job_id}")
+async def get_generation_status(job_id: str) -> Dict[str, Any]:
+    video_data = get_adapter().get_video(job_id)
+    if not video_data:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return video_data
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python vm_app.py '<prompt>'")
-        sys.exit(1)
-        
-    prompt_input = sys.argv[1]
-    
-    # Run the main async loop
-    asyncio.run(run_local_pipeline(prompt_input))
+    if len(sys.argv) >= 2 and not sys.argv[1].startswith("-"):
+        cli_prompt = sys.argv[1]
+        cli_job_id = get_adapter().create_video(cli_prompt)
+        asyncio.run(orchestrate_hybrid_job(cli_job_id, cli_prompt))
+    else:
+        uvicorn.run(app, host="0.0.0.0", port=8000)

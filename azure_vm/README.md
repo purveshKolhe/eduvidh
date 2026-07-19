@@ -1,11 +1,12 @@
 # Azure VM Local Video Pipeline
 
-This folder contains the standalone local version of the video rendering pipeline. Instead of spawning serverless containers on Modal, it executes rendering tasks concurrently on the local machine (e.g. your Azure VM) as child subprocesses, tracking metrics and resource spikes.
+This folder contains the Azure side of the hybrid production pipeline. It owns job orchestration, renders two slides through one persistent Chrome process with two tabs, and sends the remaining slides to Modal.
 
 ---
 
 ## File Structure
-* **[vm_app.py](file:///home/purvi/Desktop/eduvidh/azure_vm/vm_app.py)**: The main orchestrator script that generates scripts via Groq, executes Remotion/FFmpeg rendering concurrently via `asyncio.create_subprocess_exec`, and profiles CPU/RAM resources.
+* **[vm_app.py](vm_app.py)**: The FastAPI control plane and hybrid orchestrator.
+* **[../remotion-app/renderer_service.js](../remotion-app/renderer_service.js)**: The local-only persistent Chrome renderer. Start it before the API.
 
 ---
 
@@ -19,20 +20,27 @@ Before running the script, make sure the VM has:
    # OR
    sudo apt-get install ffmpeg -y # Ubuntu/Debian
    ```
-3. **Python Dependencies**:
-   Ensure `oracledb`, `boto3`, `edge-tts`, `groq`, and `python-dotenv` are installed in your Python environment:
+3. **Google Chrome and Python dependencies**:
+   Ensure Google Chrome plus `aiohttp`, `fastapi`, `modal`, `oracledb`, `boto3`, `edge-tts`, `groq`, `python-dotenv`, and `uvicorn` are installed. `setup_vm.sh` installs these prerequisites and bundles Remotion.
    ```bash
-   pip install oracledb boto3 edge-tts groq python-dotenv
+   pip install aiohttp fastapi modal oracledb boto3 edge-tts groq python-dotenv uvicorn
    ```
 
 ---
 
 ## Running the Pipeline
 
-To execute the pipeline locally, pass a video prompt to the script:
+Start the persistent local renderer, then start the VM API:
 ```bash
-python vm_app.py "The French Revolution"
+cd ../remotion-app
+node renderer_service.js
+
+# In a second terminal:
+cd ../azure_vm
+python vm_app.py
 ```
+
+Deploy `modal_app.py` before starting the VM API. The VM requires the deployed Modal application name `edu-video-generator` (or `MODAL_APP_NAME`) and its usual database, storage, and Groq environment variables.
 
 ---
 
