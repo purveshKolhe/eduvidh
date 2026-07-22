@@ -73,18 +73,28 @@ export const RemotionRoot: React.FC = () => {
         if (rendererWindow.remotion_onPropsSet) {
           rendererWindow.remotion_onPropsSet();
         }
-      }, 50);
+      }, 100);
     };
 
     rendererWindow.remotion_setFrame = (frame: number) => {
-      if (playerRef.current) {
-        playerRef.current.seekTo(frame);
-        setTimeout(() => {
-          if (rendererWindow.remotion_onFrameSet) {
-            rendererWindow.remotion_onFrameSet();
+      const seek = () => {
+        if (playerRef.current) {
+          try {
+            playerRef.current.seekTo(frame);
+            setTimeout(() => {
+              if (rendererWindow.remotion_onFrameSet) {
+                rendererWindow.remotion_onFrameSet();
+              }
+            }, 30);
+          } catch (err) {
+            console.error("seekTo error:", err);
+            setTimeout(seek, 20);
           }
-        }, 20);
-      }
+        } else {
+          setTimeout(seek, 20);
+        }
+      };
+      seek();
     };
 
     rendererWindow.remotion_ready = true;

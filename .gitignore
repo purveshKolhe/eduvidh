@@ -14,4 +14,4 @@ remotion-app/bundled
 .agents
 .codex
 azure_vm/exp_key.pem
-
+__pycache__
